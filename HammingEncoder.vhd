@@ -1,6 +1,6 @@
 ----------------------------------------------------------------------------------
 -- Kimia Khoodsiyani & Maral Torabi
--- 40223030            402230??
+-- 40223030            40223019
 
 -- Create Date:    14:17:47 07/25/2025  
 -- Module Name:    HammingEncoder - Behavioral 
