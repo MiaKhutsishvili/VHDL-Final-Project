@@ -29,7 +29,7 @@ architecture Behavioral of HammingEncoder is
 
 begin
 
-	process (clk, Rst, In_Start)
+	process (clk, Rst, In_Start, Open_In)
 		variable cnt : integer := 0;	-- cnt is 0 at the begining of simulation
 	begin
 		if rising_edge(clk) then
