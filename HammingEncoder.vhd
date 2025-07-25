@@ -15,12 +15,12 @@ use IEEE.NUMERIC_STD.ALL;
 
 entity HammingEncoder is
     Port ( clk : in STD_LOGIC;           -- Receiving sequential data
-			  In_Start : in STD_LOGIC;      -- Marking In_Data LSB
-			  In_Data : in  STD_LOGIC;      -- Input data
+	   In_Start : in STD_LOGIC;      -- Marking In_Data LSB
+	   In_Data : in  STD_LOGIC;      -- Input data
            Rst : in  STD_LOGIC;          -- Setting everything to the default
            Out_Data : out  STD_LOGIC;    -- Hamming coded data
            Out_Rdy : out  STD_LOGIC;     -- Is true if the output is calculated
-			  Open_In : inout  STD_LOGIC);    -- No calculation is being done
+	   Open_In : inout  STD_LOGIC);  -- No calculation is being done
 end HammingEncoder;
 
 architecture Behavioral of HammingEncoder is
