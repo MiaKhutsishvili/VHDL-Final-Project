@@ -40,7 +40,7 @@ begin
 				code <= "0000000000000";
 				cnt := 0;
 			end if;
-			if Open_In = '1' then
+			if Open_In = '1' then	-- Input gate is open, we are in INPUT MODE
 				case cnt is
 					when 0 => 
 						code(2) <= In_Data;
@@ -64,7 +64,7 @@ begin
 						-- Impossible!
 				end case;
 				cnt := cnt + 1;
-			elsif Open_In = '0' then  
+			elsif Open_In = '0' then   -- Input gate is closed, we are in OUTPUT MODE
 				-- Assigning parities
 				code(0) <= (((code(2) xor code(4)) xor code(6)) xor code(8)) xor code(10);
 				code(1) <= (((code(2) xor code(5)) xor code(6)) xor code(9)) xor code(10);
