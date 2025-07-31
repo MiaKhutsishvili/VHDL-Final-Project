@@ -15,27 +15,27 @@ use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.NUMERIC_STD.ALL;
 
 entity HammingDecoder is
-    Port ( in_data : in  STD_LOGIC;
-           out_data : out  STD_LOGIC;
-           open_in : inout  STD_LOGIC;
-           valid_out : out  STD_LOGIC;
-           out_rdy : inout  STD_LOGIC;
-			  in_start : in STD_LOGIC;
-			  RST : in STD_LOGIC;
-			  clk : in STD_LOGIC);
+    Port ( in_data : in  STD_LOGIC;                         -- input data
+           out_data : out  STD_LOGIC;                       -- output data
+           open_in : inout  STD_LOGIC;                      -- input gate / is open after outputing the decoded result
+           valid_out : out  STD_LOGIC;                      -- is 1 if there is max 1 error in code
+           out_rdy : inout  STD_LOGIC;                      -- is 1 if the output is calculated
+           in_start : in STD_LOGIC;                         -- is 1 when the input code starts
+	   RST : in STD_LOGIC;                              -- resets everything
+	   clk : in STD_LOGIC);                             -- clock
 end HammingDecoder;
 
 architecture Behavioral of HammingDecoder is
 
-	signal marker : STD_LOGIC_VECTOR (3 downto 0);
-	signal extention : STD_LOGIC;
-	signal inp_enc_data : STD_LOGIC_VECTOR (12 downto 0);
-	signal code_rdy : STD_LOGIC;
+	signal marker : STD_LOGIC_VECTOR (3 downto 0); 	         -- possible 1 error position
+	signal extention : STD_LOGIC;                            -- remade bit #13
+	signal inp_enc_data : STD_LOGIC_VECTOR (12 downto 0);	 -- 13bit data
+--	signal code_rdy : STD_LOGIC;                             -- is 1 if there is an input
 	
 begin
 		process (clk, RST)
 			variable cnt : integer := 0;	-- cnt is 0 at the begining of simulation
-			variable ind : integer := 0; 
+			variable ind : integer := 0;  -- possible error position
 		begin
 			if rising_edge(clk) then
 				if (RST = '1' or in_start = '1') then
@@ -46,13 +46,14 @@ begin
 					marker <= "0000";
 					inp_enc_data <= "0000000000000";
 					cnt := 0;
-					code_rdy <= '0';
+--					code_rdy <= '0';
 				end if;
 				
+				-- taking the input
 				if open_in = '1' then
-					if in_start = '1' then 
-						code_rdy <= '1';
-					end if;
+--					if in_start = '1' then 
+--						code_rdy <= '1'; 
+--					end if;
 					case cnt is
 						when 0 => 
 							inp_enc_data(0) <= in_data;
@@ -91,7 +92,7 @@ begin
 				if (open_in = '0' and out_rdy = '0') then
 					-- Constructing the new parities
 					marker(0) <= inp_enc_data(0) xor (inp_enc_data(2) xor (inp_enc_data(4) xor
-									(inp_enc_data(6) xor (inp_enc_data(8) xor inp_enc_data(10)))));
+						  			(inp_enc_data(6) xor (inp_enc_data(8) xor inp_enc_data(10)))));
 					marker(1) <= inp_enc_data(1) xor (inp_enc_data(2) xor (inp_enc_data(5) xor
 									(inp_enc_data(6) xor (inp_enc_data(9) xor inp_enc_data(10)))));
 					marker(2) <= inp_enc_data(3) xor (inp_enc_data(4) xor (inp_enc_data(5) xor
@@ -114,9 +115,10 @@ begin
 					else
 						valid_out <= '0';
 					end if;
-					if code_rdy = '1' then
-						out_rdy <= '1';
-					end if;
+					out_rdy <= '1';
+--					if code_rdy = '1' then
+--						out_rdy <= '1';
+--					end if;
 				end if;
 				
 				if out_rdy = '1' then
