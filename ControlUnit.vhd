@@ -22,7 +22,7 @@ entity ControlUnit is
 		packet_type : inout pack_type;				-- Determines the type packet
 
 		out_data : out data_packet				-- Whole packet output
-			);
+	);
 end ControlUnit;
 
 architecture Behavioral of ControlUnit is
