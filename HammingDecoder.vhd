@@ -15,16 +15,16 @@ use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.NUMERIC_STD.ALL;
 
 entity HammingDecoder is
-    Port ( in_data : in  STD_LOGIC;                         			-- 1 bit input data
-			in_start : in STD_LOGIC;                         	-- is 1 when the input code starts
-			RST : in STD_LOGIC;                              	-- resets everything
-			clk : in STD_LOGIC;
+    Port ( 	in_data : in  STD_LOGIC;                         	-- 1 bit input data
+		in_start : in STD_LOGIC;                         	-- is 1 when the input code starts
+		RST : in STD_LOGIC;                              	-- resets everything
+		clk : in STD_LOGIC;
 			  
-			out_rdy : inout  STD_LOGIC;                      	-- is 1 if the output is calculated
+		out_rdy : inout  STD_LOGIC;                      	-- is 1 if the output is calculated
            
-			out_data : out  STD_LOGIC_VECTOR (7 downto 0);   	-- 8 bit output data
-           		valid_out : out  STD_LOGIC                      	-- is 1 if there is max 1 error in code
-			  );                             	
+		out_data : out  STD_LOGIC_VECTOR (7 downto 0);   	-- 8 bit output data
+           	valid_out : out  STD_LOGIC                      	-- is 1 if there is max 1 error in code
+	);                             	
 end HammingDecoder;
 
 architecture Behavioral of HammingDecoder is
