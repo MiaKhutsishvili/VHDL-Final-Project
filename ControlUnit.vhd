@@ -13,23 +13,23 @@ use IEEE.NUMERIC_STD.ALL;
 use work.Packages.ALL;
 
 entity ControlUnit is
-    Port ( in_data : in  STD_LOGIC_VECTOR(7 downto 0);		-- 8 bit input data
+    Port ( 	in_data : in  STD_LOGIC_VECTOR(7 downto 0);		-- 8 bit input data
 			  -- in_start : in STD_LOGIC;									
-			  clk : in STD_LOGIC;				
+	   	clk : in STD_LOGIC;				
 			  
-			  RST : inout STD_LOGIC;									-- Resets everything
-			  out_rdy : inout STD_LOGIC;								-- Is 1 when the whole packet is ready 
-			  packet_type : inout pack_type;							-- Determines the type packet
+		RST : inout STD_LOGIC;					-- Resets everything
+		out_rdy : inout STD_LOGIC;				-- Is 1 when the whole packet is ready 
+		packet_type : inout pack_type;				-- Determines the type packet
 
-			  out_data : out data_packet								-- Whole packet output
+		out_data : out data_packet				-- Whole packet output
 			);
 end ControlUnit;
 
 architecture Behavioral of ControlUnit is
 	
-	signal packet : data_packet;										-- Temperory memory for a packet
-	signal waitOneClk : STD_LOGIC;									-- Used to make a 1 clk hold for the out_rdy
-	signal step : integer := 0;										-- To save which part of packet is the input
+	signal packet : data_packet;					-- Temperory memory for a packet
+	signal waitOneClk : STD_LOGIC;					-- Used to make a 1 clk hold for the out_rdy
+	signal step : integer := 0;					-- To save which part of packet is the input
 	
 begin
 
