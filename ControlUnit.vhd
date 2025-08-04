@@ -14,8 +14,8 @@ use work.Packages.ALL;
 
 entity ControlUnit is
     Port ( 	in_data : in  STD_LOGIC_VECTOR(7 downto 0);		-- 8 bit input data
-			  -- in_start : in STD_LOGIC;									
-	   	clk : in STD_LOGIC;				
+		-- in_start : in STD_LOGIC;									
+		clk : in STD_LOGIC;				
 			  
 		RST : inout STD_LOGIC;					-- Resets everything
 		out_rdy : inout STD_LOGIC;				-- Is 1 when the whole packet is ready 
@@ -30,6 +30,8 @@ architecture Behavioral of ControlUnit is
 	signal packet : data_packet;					-- Temperory memory for a packet
 	signal waitOneClk : STD_LOGIC;					-- Used to make a 1 clk hold for the out_rdy
 	signal step : integer := 0;					-- To save which part of packet is the input
+	signal intSum : integer range -650 to 650 := 0;			-- Sum of data in packet, from -2^7 * 5 to (2^7 - 1) * 5
+	signal bitSum : STD_LOGIC_VECTOR(15 downto 0);			-- " But in binary
 	
 begin
 
@@ -53,6 +55,8 @@ begin
 				end loop;
 				step <= 0;
 				waitOneClk <= '0';
+				intSum <= 0;
+				bitSum <= "0000000000000000";
 			end if;
 			
 			if waitOneClk = '1' then 
@@ -88,14 +92,42 @@ begin
 					
 				when 1 =>
 					packet(1) <= in_data;
+					if (packet_type = Rea_d or packet_type = Read_Response) then
+						-- sum 
+						intSum <= to_integer(signed(packet(0))) + to_integer(signed(packet(1)));
+						bitSum <= std_logic_vector(to_signed(intSum, 16));
+						packet(2) <= bitSum(15 downto 8);
+						packet(3) <= bitSum(7 downto 0);
+						packet(4) <= "00000000";
+						packet(5) <= "00000000";
+						packet(6) <= "00000000";
+						out_rdy <= '1';
+						out_data <= packet;
+						RST <= '1';
+					end if;
 				
 				when 2 => 
 					packet(2) <= in_data;
+					if packet_type = Writ_e then
+						intSum <= to_integer(signed(packet(0))) + to_integer(signed(packet(1))) + to_integer(signed(packet(2)));
+						bitSum <= std_logic_vector(to_signed(intSum, 16));
+						packet(3) <= bitSum(15 downto 8);
+						packet(4) <= bitSum(7 downto 0);
+						packet(5) <= "00000000";
+						packet(6) <= "00000000";
+						out_rdy <= '1';
+						out_data <= packet;
+						RST <= '1';
+					end if;
+					
 				when 3 => 
 					packet(3) <= in_data;
-					if (packet_type = Rea_d or packet_type = Read_Response) then
-						packet(4) <= "00000000";
-						packet(5) <= "00000000";
+					if ((packet_type = Operand_Alu or packet_type = Immediate_Alu) or packet_type = Indirect_Addressing) then
+						intSum <= to_integer(signed(packet(0))) + to_integer(signed(packet(1))) +
+									 to_integer(signed(packet(2))) + to_integer(signed(packet(3)));
+						bitSum <= std_logic_vector(to_signed(intSum, 16));
+						packet(4) <= bitSum(15 downto 8);
+						packet(5) <= bitSum(7 downto 0);
 						packet(6) <= "00000000";
 						out_rdy <= '1';
 						out_data <= packet;
@@ -104,26 +136,13 @@ begin
 					
 				when 4 => 
 					packet(4) <= in_data;
-					if packet_type = Writ_e then
-						packet(5) <= "00000000";
-						packet(6) <= "00000000";
-						out_rdy <= '1';
-						out_data <= packet;
-						RST <= '1';
-					end if;
-					
-				when 5 => 
-					packet(5) <= in_data;
-					if ((packet_type = Operand_Alu or packet_type = Immediate_Alu) or packet_type = Indirect_Addressing) then
-						packet(6) <= "00000000";
-						out_rdy <= '1';
-						out_data <= packet;
-						RST <= '1';
-					end if;
-				
-				when 6 => 
-					packet(6) <= in_data;
 					if packet_type = Array_Alu then
+						intSum <= to_integer(signed(packet(0))) + to_integer(signed(packet(1))) +
+									 to_integer(signed(packet(2))) + to_integer(signed(packet(3))) +
+									 to_integer(signed(packet(4)));
+						bitSum <= std_logic_vector(to_signed(intSum, 16));
+						packet(5) <= bitSum(15 downto 8);
+						packet(6) <= bitSum(7 downto 0);
 						out_rdy <= '1';
 						out_data <= packet;
 						RST <= '1';
