@@ -1,11 +1,11 @@
 ----------------------------------------------------------------------------------
 -- Kimia Khoodsiyani & Maral Torabi
--- 40223030				  40223019
+-- 40223030	        40223019
 
--- Create Date:    03:27:20 08/03/2025 
--- Module Name:    RAM - Behavioral 
--- Project Name: 	 Logiccal Circuits Final Project
--- Description: 	 Just a Ram containing 256 cells, 32 rows 8 colomns
+-- Create Date:    	03:27:20 08/03/2025 
+-- Module Name:    	RAM - Behavioral 
+-- Project Name: 	Logiccal Circuits Final Project
+-- Description: 	Just a Ram containing 256 cells, 32 rows 8 colomns
 ----------------------------------------------------------------------------------
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
@@ -13,15 +13,15 @@ use IEEE.NUMERIC_STD.ALL;
 use work.Packages.ALL;
 
 entity RAM is
-    Port ( 	packet : in  Ram_Pack;									-- Input data packets
-				mode : in pack_type;											-- Read or write
-				RST : in  STD_LOGIC;
-				clk : in  STD_LOGIC;
+    Port ( 	packet : in  Ram_Pack;					-- Input data packets
+		mode : in pack_type;					-- Read or write
+		RST : in  STD_LOGIC;
+		clk : in  STD_LOGIC;
 			  
-			   valid : inout STD_LOGIC;									-- If the Checksums match
+		valid : inout STD_LOGIC;				-- If the Checksums match
 				
-				Out_Data : out  STD_LOGIC_VECTOR(7 downto 0)			-- Output of read mode
-			 );
+		Out_Data : out  STD_LOGIC_VECTOR(7 downto 0)		-- Output of read mode
+	);
 end RAM;
 
 architecture Behavioral of RAM is
