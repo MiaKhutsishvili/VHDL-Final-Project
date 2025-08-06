@@ -14,10 +14,10 @@ package Packages is
 	
 	--type Ram_Row is array (0 to 7) of STD_LOGIC_VECTOR(7 downto 0);
 	type Ram_Matrix is array (0 to 31) of Byte; --Ram_Row;
-	type Ram_In_Pack is array (0 to 4) of Byte;
+	type Ram_In_Packet is array (0 to 4) of Byte;
 	type Ram_Resp_Pack is array (0 to 3) of Byte;
 	
-	type Alu_In_Pack is array (0 to 3) of Byte; -- Function, Data 1, Data 2, Destination Address 
+	type Alu_In_Packet is array (0 to 3) of Byte; -- Function, Data 1, Data 2, Destination Address 
 	type Alu_Operation is (Add, Sub, Orr, Andd);
 	
 end Packages;
