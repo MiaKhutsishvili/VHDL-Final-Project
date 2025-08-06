@@ -1,11 +1,11 @@
 ----------------------------------------------------------------------------------
 -- Kimia Khoodsiyani & Maral Torabi
--- 40223030	       40223019
+-- 40223030				  40223019
 
--- Create Date:    	03:27:20 08/03/2025 
--- Module Name:    	RAM - Behavioral 
--- Project Name: 	Logiccal Circuits Final Project
--- Description: 	Just a Ram containing 256 cells, 32 rows 8 colomns
+-- Create Date:    03:27:20 08/03/2025 
+-- Module Name:    RAM - Behavioral 
+-- Project Name: 	 Logiccal Circuits Final Project
+-- Description: 	 Just a Ram containing 256 cells, 32 rows 8 colomns
 ----------------------------------------------------------------------------------
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
@@ -13,20 +13,20 @@ use IEEE.NUMERIC_STD.ALL;
 use work.Packages.ALL;
 
 entity RAM is
-    Port ( 	in_packet : in  Ram_In_Pack;									-- Input data packets
-		mode : in pack_type;											-- Read or write
-		RST : in  STD_LOGIC;
-		clk : in  STD_LOGIC;
+    Port ( 	in_packet : in  Ram_In_Packet;					-- Input data packets
+				mode : in pack_type;								-- Read or write
+				RST : in  STD_LOGIC;
+				clk : in  STD_LOGIC;
 			  
-		valid : inout STD_LOGIC;									-- If the Checksums match
+			   valid : inout STD_LOGIC;						-- If the Checksums match
 				
-		Ram_Response : out Ram_Resp_Pack							-- Output of read mode
+				ram_response : out Ram_Resp_Pack				-- Output of read mode
 			 );
 end RAM;
 
 architecture Behavioral of RAM is
 	
-	signal Memory : Ram_Matrix;
+	signal Memory : Ram_Matrix := (others => (others => '0'));	-- initial value is zerop
 	signal intSum : integer range -650 to 650 := 0;	
 	signal bitSum : STD_LOGIC_VECTOR(15 downto 0) := "0000000000000000";
 	signal CheckSumH : Byte;
@@ -85,12 +85,12 @@ begin
 						end if;
 						if Valid = '1' then
 							-- Read Operation
-							Ram_Response(0) <= "11001111";
-							Ram_Response(1) <= Memory(address_row);
+							ram_response(0) <= "11001111";
+							ram_response(1) <= Memory(address_row);
 							intSum <= to_integer(signed(Memory(address_row))) - 49;
 							bitSum <= std_logic_vector(to_signed(intSum, 16));
-							Ram_Response(2) <= bitSum(15 downto 8);
-							Ram_Response(3) <= bitSum(7 downto 0);
+							ram_response(2) <= bitSum(15 downto 8);
+							ram_response(3) <= bitSum(7 downto 0);
 						end if;
 					when others =>
 						Valid <= '0';
