@@ -1,6 +1,6 @@
 ----------------------------------------------------------------------------------
 -- Kimia Khoodsiyani & Maral Torabi
--- 40223030		40223019
+-- 40223030	       40223019
 
 -- Create Date:    	03:27:20 08/03/2025 
 -- Module Name:    	RAM - Behavioral 
@@ -13,14 +13,14 @@ use IEEE.NUMERIC_STD.ALL;
 use work.Packages.ALL;
 
 entity RAM is
-    Port ( 	packet : in  Ram_In_Pack;				-- Input data packets
-		mode : in pack_type;					-- Read or write
+    Port ( 	in_packet : in  Ram_In_Pack;									-- Input data packets
+		mode : in pack_type;											-- Read or write
 		RST : in  STD_LOGIC;
 		clk : in  STD_LOGIC;
 			  
-		valid : inout STD_LOGIC;				-- If the Checksums match
+		valid : inout STD_LOGIC;									-- If the Checksums match
 				
-		Ram_Response : out Ram_Resp_Pack			-- Output of read mode
+		Ram_Response : out Ram_Resp_Pack							-- Output of read mode
 			 );
 end RAM;
 
@@ -29,8 +29,8 @@ architecture Behavioral of RAM is
 	signal Memory : Ram_Matrix;
 	signal intSum : integer range -650 to 650 := 0;	
 	signal bitSum : STD_LOGIC_VECTOR(15 downto 0) := "0000000000000000";
-	signal CheckSumH : STD_LOGIC_VECTOR(7 downto 0);
-	signal CheckSumL : STD_LOGIC_VECTOR(7 downto 0);
+	signal CheckSumH : Byte;
+	signal CheckSumL : Byte;
 
 begin
 
@@ -52,33 +52,33 @@ begin
 				case mode is
 					when Writ_e =>
 						-- Validation:
-						intSum <= to_integer(signed(packet(0))) + to_integer(signed(packet(1))) + to_integer(signed(packet(2)));
+						intSum <= to_integer(signed(in_packet(0))) + to_integer(signed(in_packet(1))) + to_integer(signed(in_packet(2)));
 						bitSum <= std_logic_vector(to_signed(intSum, 16));
 						CheckSumH <= bitSum(15 downto 8);
 						CheckSumL <= bitSum(7 downto 0);
-						if (CheckSumH = packet(3) and  CheckSumL = packet(4)) then
+						if (CheckSumH = in_packet(3) and  CheckSumL = in_packet(4)) then
 							Valid <= '1';
-							address_row := to_integer(unsigned(packet(1)));--(7 downto 3)));
-							--address_col := to_integer(unsigned(packet(1)(2 downto 0)));
+							address_row := to_integer(unsigned(in_packet(1)));--(7 downto 3)));
+							--address_col := to_integer(unsigned(in_packet(1)(2 downto 0)));
 							if address_row > 31 then
 								Valid <= '0';
 							end if;
 						end if;
 						if Valid = '1' then
 							-- Write Operation
-							Memory(address_row) <= packet(2);
+							Memory(address_row) <= in_packet(2);
 						end if;
 					when Rea_d =>
 						-- Validation:
-						intSum <= to_integer(signed(packet(0))) + to_integer(signed(packet(1)));
+						intSum <= to_integer(signed(in_packet(0))) + to_integer(signed(in_packet(1)));
 						bitSum <= std_logic_vector(to_signed(intSum, 16));
 						CheckSumH <= bitSum(15 downto 8);
 						CheckSumL <= bitSum(7 downto 0);
 						
-						if (CheckSumH = packet(2) and  CheckSumL = packet(3)) then
+						if (CheckSumH = in_packet(2) and  CheckSumL = in_packet(3)) then
 							Valid <= '1';
-							address_row := to_integer(unsigned(packet(1)));--(7 downto 3)));
-							--address_col := to_integer(unsigned(packet(1)(2 downto 0)));
+							address_row := to_integer(unsigned(in_packet(1)));--(7 downto 3)));
+							--address_col := to_integer(unsigned(in_packet(1)(2 downto 0)));
 							if address_row > 31 then
 								Valid <= '0';
 							end if;
