@@ -4,7 +4,7 @@
 
 -- Create Date:    14:11:14 08/05/2025 
 -- Module Name:    ALU - Behavioral 
--- Project Name: 	 Logical Circuits Final Project
+-- Project Name:   Logical Circuits Final Project
 -- Description:    This module is the calculator
 ----------------------------------------------------------------------------------
 library IEEE;
@@ -13,10 +13,10 @@ use IEEE.NUMERIC_STD.ALL;
 use work.Packages.All;
 
 entity ALU is
-    Port ( in_packet : in  Alu_In_Pack; -- instead of address_1 and address_2, we have the exact data from control unit.
-			  clk : in STD_LOGIC;
+    Port ( 	in_packet : in  Alu_In_Pack; -- instead of address_1 and address_2, we have the exact data from control unit.
+		clk : in STD_LOGIC;
 			  
-           output : out Ram_In_Pack
+           	output : out Ram_In_Pack
 			 );
 end ALU;
 
