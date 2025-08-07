@@ -16,12 +16,12 @@ use work.Packages.All;
 
 entity TopModule is
     Port ( Input : in STD_LOGIC;		
-	 
+
            Output : out STD_LOGIC;		
 			  Error : out STD_LOGIC;
 			  
-           RST : inout STD_LOGIC; 
-           clk : inout STD_LOGIC
+           RST : in STD_LOGIC; 
+           clk : in STD_LOGIC
 			  );
 end TopModule;
 
@@ -30,24 +30,24 @@ architecture Behavioral of TopModule is
 	signal DataByte : byte;
 	signal DecValidation : STD_LOGIC;
 	
-	signal Switch : main_switch;
+	signal Switch : STD_LOGIC;
 	signal Packet : data_packet;
-	signal PackType : packet_type;
 	
 	signal PackToRam : data_packet;
-	signal RamMode : packet_type;
 	signal RamReadResp : ram_resp_pack;
 	signal RamError : STD_LOGIC;
 	
-	signal PackToAlu : data_packet;
+	signal AluEnable : STD_LOGIC;
+	--signal PackToAlu : data_packet;
+	signal PackMode : packet_type;
 	signal AluToRam : data_packet;
-	signal RamToAlu : ram_resp_pack;
+	--signal RamToAlu : ram_resp_pack;
 	signal AluDone : STD_LOGIC;
 	signal AluError : STD_LOGIC;
+	--signal RamRespError : STD_LOGIC;
 	
+	signal EncByte : byte;
 	signal EncInBit : STD_LOGIC;
-	signal EncInBitCnt : integer range 0 to 8 := 0;
-	signal EncInCellCnt : integer range 0 to 7 := 0; 
 	
 begin
 
@@ -55,8 +55,8 @@ begin
 		port map
 		(
 			DecInBit => Input,
-			DecOutByte => DataByte,
-			Valid => DecValidation,
+			DecOutByte => DataByte,				
+			Valid => DecValidation,				
 			RST => RST,
 			clk => clk
 		);
@@ -65,33 +65,49 @@ begin
 		port map
 		(
 			InByte => DataByte,
-			Switch => Switch,
-			Packet => Packet,
-			PackType => PackType,
+			Switch => Switch,						
+			Packet => Packet,		
+			PackMode => PackMode,
 			RST => RST,
 			clk => clk
 		);
-		
+
 	RAM: entity work.RAM
 		port map
 		(
 			InPack => PackToRam,
-			Mode => RamMode,
-			ReadResp => RamReadResp,
-			Error => RamError,
+			ReadResp => RamReadResp,			
+			Error => RamError,					
 			RST => RST,
 			clk => clk
 		);
-	
+		
 	ALU: entity work.ALU
 		port map
 		(
-			InPack => PackToAlu,
-			PackMode => PackType,
-			SendToRamPack => AluToRam,
-			ReadResponse => RamToAlu,
+			Enable => AluEnable,
+			InPack => Packet,
+			PackMode => PackMode,
+			SentToRam => AluToRam,
+			ReadResponse => RamReadResp,
 			Finish => AluDone,
 			Error => AluError, 
+			clk => clk
+		);
+
+	PacketToByte: entity work.PackToByte
+		port map
+		(
+			PackIn => RamReadResp,
+			ByteOut => EncByte,
+			clk => clk
+		);
+	
+	ByteToBit: entity work.ByteToBit
+		port map
+		(
+			ByteIn => EncByte,
+			BitOut => EncInBit,
 			clk => clk
 		);
 		
@@ -99,39 +115,17 @@ begin
 		port map
 		(
 			BitIn => EncInBit,
-			BitOut => Output,
+			BitOut => Output,						
 			RST => RST,
 			clk => clk
 		);
-		
-	process(clk)
-	begin
-		if rising_edge(clk) then
-			Error <= (not(DecValidation) or RamError) or AluError;
-			if switch = RAM then
-				PackToRam <= Packet;
-				RamMode <= PackType;
-				if EncInBitCnt = 8 then
-					EncInBitCnt <= 0;
-					EncInCellCnt <= EncInCellCnt + 1;
-				end if;
-				if EncInCellCnt = 4 then
-					EncInCellCnt <= 0;
-				end if;
-				EncInBit <= RamReadResp(EncInCellCnt)(EncInBitCnt);
-			else
-				if AluDone = '1' then
-					PackToAlu <= Packet;
-					PackToRam <= AluToRam;
-					if AluToRam(0) = "00001111" then
-						RamMode <= Rea_d;
-					else
-						RamMode <= Writ_e;
-					end if;
-					RamToAlu <= RamReadResp;
-				end if;
-			end if;
-		end if;
-	end process;
+	
+	AluEnable <= Switch or (not(AluDone)); 
+	with AluEnable select
+		PackToRam <= 
+			Packet when '0',
+			AluToRam when others;
+	Error <= (RamError or AluError) or not(DecValidation);
+
 end Behavioral;
 
