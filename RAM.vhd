@@ -6,6 +6,7 @@
 -- Module Name:    RAM - Behavioral 
 -- Project Name: 	 Logiccal Circuits Final Project
 -- Description: 	 Just a Ram containing 256 cells, 32 rows 8 colomns
+-- DONE!
 ----------------------------------------------------------------------------------
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
@@ -13,30 +14,29 @@ use IEEE.NUMERIC_STD.ALL;
 use work.Packages.ALL;
 
 entity RAM is
-    Port ( 	in_packet : in  Ram_In_Packet;					-- Input data packets
-				mode : in pack_type;								-- Read or write
-				RST : in  STD_LOGIC;
-				clk : in  STD_LOGIC;
-			  
-			   valid : inout STD_LOGIC;						-- If the Checksums match
+    Port ( 	InPack : in  data_packet;						-- Input data packet
+				Mode : in packet_type;								-- Read or write
+				Error : inout STD_LOGIC;						-- Address Out of Band / CheckSum Fail
+				ReadResp : out Ram_Resp_Pack;					-- Output of read mode
 				
-				ram_response : out Ram_Resp_Pack				-- Output of read mode
+				RST : in  STD_LOGIC;
+				clk : in  STD_LOGIC
 			 );
 end RAM;
 
 architecture Behavioral of RAM is
 	
-	signal Memory : Ram_Matrix := (others => (others => '0'));	-- initial value is zerop
-	signal intSum : integer range -650 to 650 := 0;	
-	signal bitSum : STD_LOGIC_VECTOR(15 downto 0) := "0000000000000000";
-	signal CheckSumH : Byte;
-	signal CheckSumL : Byte;
-
+	signal Memory : ram_matrix := (others => (others => '0')); --(others => '0')));	-- initial value is zerop
+	
 begin
 
 	process(clk)
-		variable address_row : integer range 0 to 31;
-		--variable address_col : integer range 0 to 7;
+		variable RowAddress : integer range 0 to 31;
+--		variable ColAddress : integer range 0 to 7;
+		variable WriteData : byte;
+		variable bitSum : byte := (others => '0');
+		variable CheckSum : STD_LOGIC;
+		
 	begin
 		if rising_edge(clk) then
 			if RST = '1' then
@@ -46,55 +46,27 @@ begin
 					--end loop;
 				end loop;
 			else
-				intSum <= 0;
-				bitSum <= "0000000000000000";
-				Valid <= '0';
-				case mode is
-					when Writ_e =>
-						-- Validation:
-						intSum <= to_integer(signed(in_packet(0))) + to_integer(signed(in_packet(1))) + to_integer(signed(in_packet(2)));
-						bitSum <= std_logic_vector(to_signed(intSum, 16));
-						CheckSumH <= bitSum(15 downto 8);
-						CheckSumL <= bitSum(7 downto 0);
-						if (CheckSumH = in_packet(3) and  CheckSumL = in_packet(4)) then
-							Valid <= '1';
-							address_row := to_integer(unsigned(in_packet(1)));--(7 downto 3)));
-							--address_col := to_integer(unsigned(in_packet(1)(2 downto 0)));
-							if address_row > 31 then
-								Valid <= '0';
-							end if;
-						end if;
-						if Valid = '1' then
+				RowAddress := to_integer(unsigned(InPack(1))); --(7 downto 3)));
+--				ColAddress := to_integer(unsigned(InPack(1)(2 downto 0)));
+				WriteData := InPack(2);
+				CheckSum := Validate(InPack);
+				if (to_integer(unsigned(InPack(1))) < 32 and CheckSum = '1') then
+					Error <= '0';
+					case mode is				
+						when Writ_e =>
 							-- Write Operation
-							Memory(address_row) <= in_packet(2);
-						end if;
-					when Rea_d =>
-						-- Validation:
-						intSum <= to_integer(signed(in_packet(0))) + to_integer(signed(in_packet(1)));
-						bitSum <= std_logic_vector(to_signed(intSum, 16));
-						CheckSumH <= bitSum(15 downto 8);
-						CheckSumL <= bitSum(7 downto 0);
-						
-						if (CheckSumH = in_packet(2) and  CheckSumL = in_packet(3)) then
-							Valid <= '1';
-							address_row := to_integer(unsigned(in_packet(1)));--(7 downto 3)));
-							--address_col := to_integer(unsigned(in_packet(1)(2 downto 0)));
-							if address_row > 31 then
-								Valid <= '0';
-							end if;
-						end if;
-						if Valid = '1' then
+							Memory(RowAddress) <= WriteData;
+						when Rea_d =>
 							-- Read Operation
-							ram_response(0) <= "11001111";
-							ram_response(1) <= Memory(address_row);
-							intSum <= to_integer(signed(Memory(address_row))) - 49;
-							bitSum <= std_logic_vector(to_signed(intSum, 16));
-							ram_response(2) <= bitSum(15 downto 8);
-							ram_response(3) <= bitSum(7 downto 0);
-						end if;
-					when others =>
-						Valid <= '0';
-				end case;
+							ReadResp(0) <= "11001111";
+							ReadResp(1) <= Memory(RowAddress);
+							bitSum := std_logic_vector(to_signed(-49, 8) + signed(Memory(RowAddress))); 
+							-- Since Row Address is always > 0, => bitSum will always use only 8 bits. max bitSum = 206
+							ReadResp(2) <= "00000000";
+							ReadResp(3) <= bitSum;
+						when others =>
+					end case;
+				end if;
 			end if;
 		end if;
 	end process;
