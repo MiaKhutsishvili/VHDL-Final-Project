@@ -14,9 +14,10 @@ use IEEE.NUMERIC_STD.ALL;
 use work.Packages.ALL;
 
 entity RAM is
-    Port ( 	InPack : in  data_packet;						-- Input data packet
+    Port ( 	CtrlReq : in  data_packet;						-- Input data packet
+				AluReq : in  data_packet;
 				ReadResp : out Ram_Resp_Pack;					-- Output of read mode
-				
+				InChoose : in STD_LOGIC;
 				Error : out STD_LOGIC;						-- Address Out of Band / CheckSum Fail
 				RST : in  STD_LOGIC;
 				clk : in  STD_LOGIC
@@ -28,9 +29,10 @@ architecture Behavioral of RAM is
 	signal Memory : ram_matrix := (others => (others => '0')); --(others => '0')));	-- initial value is zerop
 	
 begin
-
+	
 	process(clk)
-		Variable Mode : packet_type;								
+		variable InPack : data_packet;
+		variable Mode : packet_type;								
 		variable RowAddress : integer range 0 to 31;
 --		variable ColAddress : integer range 0 to 7;
 		variable WriteData : byte;
@@ -42,6 +44,11 @@ begin
 			if RST = '1' then
 				Memory <= (others => (others => '0')); 
 			else
+				if InChoose = '1' then
+					InPack := AluReq;
+				else 
+					InPack := CtrlReq;
+				end if;
 				Error <= '0';
 				if InPack(0) = "00001111" then
 					Mode := Rea_d;
