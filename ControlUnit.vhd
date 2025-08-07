@@ -16,10 +16,10 @@ use work.Packages.ALL;
 entity ControlUnit is
     Port ( InByte : in byte;									-- 8 bit input data
 	 
-			  Switch : out main_switch;						-- 0 is RAM mode / 1 is ALU mode
+			  Switch : out STD_LOGIC;							-- 0 is RAM mode / 1 is ALU mode
 			  Packet : out data_packet;						-- The output packet
-			  PackType : inout packet_type;
-
+			  PackMode : out packet_type;
+			 
 			  clk : in STD_LOGIC;				
 			  RST : in STD_LOGIC									-- Resets everything
 			);
@@ -28,6 +28,8 @@ end ControlUnit;
 architecture Behavioral of ControlUnit is
 	
 	signal PackHold : data_packet := (others => (others => '0'));		-- Temperory memory for a packet
+	signal PackType : packet_type;
+
 	signal step : integer := 0;
 	
 begin
@@ -57,11 +59,10 @@ begin
 								PackType <= Array_Alu;
 							when "00110000" | "00110001" | "00110010" | "00110011" =>
 								PackType <= Indirect_Addressing;
-							when "11001111" =>
-								PackType <= Read_Response;
 							when others =>
 								PackType <= zero;
 						end case;	
+						PackMode <= PackType;
 						
 					when 1 =>
 						PackHold(1) <= InByte;
@@ -77,12 +78,16 @@ begin
 
 					when 3 => 
 						PackHold(3) <= InByte;
-						if not(PackType = Array_Alu) then
+						if ((PackType = Operand_Alu or PackType = Immediate_Alu) or 
+								PackType = Indirect_Addressing) then
 							PackIsReady := '1';
 						end if;
 						
 					when 4 => 
 						PackHold(4) <= InByte;
+						if PackType = Array_Alu then
+							PackIsReady := '1';
+						end if;
 	
 					when others => 
 						step <= 0;
@@ -93,16 +98,13 @@ begin
 					step <= step + 1;
 				else
 					step <= 0;
-					for i in 0 to 4 loop
-							Sum := Sum + signed(PackHold(i));
-						end loop;
-					PackHold(5) <= STD_LOGIC_VECTOR(Sum(15 downto 8)); 
-					PackHold(6) <= STD_LOGIC_VECTOR(Sum(15 downto 8));
+					PackHold(5) <= CheckSumH(PackHold); 
+					PackHold(6) <= CheckSumL(PackHold);
 					Packet <= PackHold;
 					if (PackType = Writ_e or PackType = Rea_d) then
-						Switch <= Ram;
+						Switch <= '0';
 					else
-						Switch <= Alu;
+						Switch <= '1';
 					end if;
 				end if;
 			end if;
