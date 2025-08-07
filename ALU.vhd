@@ -173,7 +173,11 @@ begin
 						Error <= '1';
 				end case;
 				Step <= Step + 1;
-				SendToRamPack <= (mode, RamAdd, Output, "00000000", "00000000", "00000000", "00000000");
+				SendToRamPack(0) <= mode;
+				SendToRamPack(1) <= RamAdd;
+				SendToRamPack(2) <= Output;
+				SendToRamPack(3) <= (others => '0');
+				SendToRamPack(4) <= (others => '0');
 				SendToRamPack(5) <= CheckSumH(SendToRamPack);
 				SendToRamPack(6) <= CheckSumL(SendToRamPack);
 			else
