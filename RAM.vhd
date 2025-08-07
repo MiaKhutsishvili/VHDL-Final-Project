@@ -15,10 +15,9 @@ use work.Packages.ALL;
 
 entity RAM is
     Port ( 	InPack : in  data_packet;						-- Input data packet
-				Mode : in packet_type;								-- Read or write
-				Error : inout STD_LOGIC;						-- Address Out of Band / CheckSum Fail
 				ReadResp : out Ram_Resp_Pack;					-- Output of read mode
 				
+				Error : out STD_LOGIC;						-- Address Out of Band / CheckSum Fail
 				RST : in  STD_LOGIC;
 				clk : in  STD_LOGIC
 			 );
@@ -31,6 +30,7 @@ architecture Behavioral of RAM is
 begin
 
 	process(clk)
+		Variable Mode : packet_type;								
 		variable RowAddress : integer range 0 to 31;
 --		variable ColAddress : integer range 0 to 7;
 		variable WriteData : byte;
@@ -40,19 +40,24 @@ begin
 	begin
 		if rising_edge(clk) then
 			if RST = '1' then
-				for i in 0 to 31 loop
-					--for j in 0 to 7 loop
-					Memory(i) <= "00000000";
-					--end loop;
-				end loop;
+				Memory <= (others => (others => '0')); 
 			else
+				Error <= '0';
+				if InPack(0) = "00001111" then
+					Mode := Rea_d;
+				elsif InPack(0) = "11110000" then
+					Mode := Writ_e;
+				else
+					Mode := zero;
+					Error <= '1';
+				end if;
+				
 				RowAddress := to_integer(unsigned(InPack(1))); --(7 downto 3)));
 --				ColAddress := to_integer(unsigned(InPack(1)(2 downto 0)));
 				WriteData := InPack(2);
 				CheckSum := Validate(InPack);
 				if (to_integer(unsigned(InPack(1))) < 32 and CheckSum = '1') then
-					Error <= '0';
-					case mode is				
+					case Mode is				
 						when Writ_e =>
 							-- Write Operation
 							Memory(RowAddress) <= WriteData;
@@ -65,7 +70,10 @@ begin
 							ReadResp(2) <= "00000000";
 							ReadResp(3) <= bitSum;
 						when others =>
+							Error <= '1';
 					end case;
+				else
+					Error <= '1';
 				end if;
 			end if;
 		end if;
