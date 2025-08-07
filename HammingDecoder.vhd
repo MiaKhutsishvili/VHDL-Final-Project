@@ -8,6 +8,7 @@
 -- Description:    This module will encode a 13 bit extended hamming coded data to extract 8 data bits
 
 -- Dependencies:   Odd_Mode = 1 /constant
+-- DONE.
 ----------------------------------------------------------------------------------
 
 library IEEE;
@@ -16,72 +17,72 @@ use IEEE.NUMERIC_STD.ALL;
 use work.Packages.ALL;
 
 entity HammingDecoder is
-    Port ( in_data : in STD_LOGIC;                         		-- 1 bit input data
+    Port ( DecInBit : in STD_LOGIC;                         		-- 1 bit input data
 			  --in_start : in STD_LOGIC;                         	-- is 1 when the input code starts
 			  RST : in STD_LOGIC;                              	-- resets everything
 			  clk : in STD_LOGIC;
 			  
 			  --out_rdy : inout  STD_LOGIC;                      	-- is 1 if the output is calculated
            
-			  out_data : out Byte;   										-- 8 bit output data
-           valid_out : out STD_LOGIC                      		-- is 1 if there is max 1 error in code
+			  DecOutByte : out byte;   										-- 8 bit output data
+           Valid : out STD_LOGIC                      		-- is 1 if there is max 1 error in code
 			  );                             	
 end HammingDecoder;
 
 architecture Behavioral of HammingDecoder is
 
-	signal marker : STD_LOGIC_VECTOR (3 downto 0); 	         	-- possible 1 error position
-	signal extention : STD_LOGIC;                            	-- remade bit #13
-	signal inp_enc_data : STD_LOGIC_VECTOR (12 downto 0);	   	-- 13bit data
+	signal ErrorMarker : STD_LOGIC_VECTOR (3 downto 0); 	  	-- possible 1 error position
+	signal ExtentionBit : STD_LOGIC;                         -- remade bit #13
+	signal Code : STD_LOGIC_VECTOR (12 downto 0);	   		-- 13bit data
+	signal cnt : integer := 0;											-- We don't want it to be initialized after eavh clock!
 	
 begin
 		process (clk)
-			variable cnt : integer := 0;	-- cnt is 0 at the begining of simulation
 			variable ind : integer := 0;  -- possible error position
 		begin
 			if rising_edge(clk) then
 				if (RST = '1') then --or in_start = '1') then
-					valid_out <= '0';
+					Valid <= '0';
 					--out_rdy <= '0';
-					marker <= "0000";
-					inp_enc_data <= "0000000000000";
-					cnt := 0;
+					ErrorMarker <= "0000";
+					Code <= "0000000000000";
+					cnt <= 0;
 					ind := 0;
 				else
 					-- taking the input
 					if cnt < 13 then
-						inp_enc_data <= in_data & inp_enc_data(12 downto 1);
-						cnt := cnt + 1;
+						Code <= DecInBit & Code(12 downto 1);
+						cnt <= cnt + 1;
 					else
-						cnt := 0;
+						cnt <= 0;
 						-- Constructing the new parities
-						marker(0) <= inp_enc_data(0) xor (inp_enc_data(2) xor (inp_enc_data(4) xor
-										(inp_enc_data(6) xor (inp_enc_data(8) xor inp_enc_data(10)))));
-						marker(1) <= inp_enc_data(1) xor (inp_enc_data(2) xor (inp_enc_data(5) xor
-										(inp_enc_data(6) xor (inp_enc_data(9) xor inp_enc_data(10)))));
-						marker(2) <= inp_enc_data(3) xor (inp_enc_data(4) xor (inp_enc_data(5) xor
-										(inp_enc_data(6) xor inp_enc_data(11))));
-						marker(3) <= inp_enc_data(7) xor (inp_enc_data(8) xor (inp_enc_data(9) xor
-										(inp_enc_data(10) xor inp_enc_data(11))));
-						extention <= inp_enc_data(0) xor (inp_enc_data(1) xor (inp_enc_data(2) xor
-										(inp_enc_data(3) xor (inp_enc_data(4) xor (inp_enc_data(5) xor
-										(inp_enc_data(6) xor (inp_enc_data(7) xor (inp_enc_data(8) xor
-										(inp_enc_data(9) xor (inp_enc_data(10) xor inp_enc_data(11)))))))))));
+						ErrorMarker(0) <= Code(0) xor (Code(2) xor (Code(4) xor
+										(Code(6) xor (Code(8) xor Code(10)))));
+						ErrorMarker(1) <= Code(1) xor (Code(2) xor (Code(5) xor
+										(Code(6) xor (Code(9) xor Code(10)))));
+						ErrorMarker(2) <= Code(3) xor (Code(4) xor (Code(5) xor
+										(Code(6) xor Code(11))));
+						ErrorMarker(3) <= Code(7) xor (Code(8) xor (Code(9) xor
+										(Code(10) xor Code(11))));
+						ExtentionBit <= Code(0) xor (Code(1) xor (Code(2) xor
+										(Code(3) xor (Code(4) xor (Code(5) xor
+										(Code(6) xor (Code(7) xor (Code(8) xor
+										(Code(9) xor (Code(10) xor Code(11)))))))))));
 						-- Correction
-						ind :=  to_integer(unsigned(marker));
+						ind :=  to_integer(unsigned(ErrorMarker));
 						ind := ind - 1;
-						if ((ind = -1 and extention = inp_enc_data(12)) or
-							  ((ind > -1 and ind < 12) and (extention = not inp_enc_data(12)))) then
-							valid_out <= '1';
+						if ((ind = -1 and ExtentionBit = Code(12)) or
+							  ((ind > -1 and ind < 12) and (ExtentionBit = not Code(12)))) then
+							Valid <= '1';
 							if ind > -1 then
-								inp_enc_data(ind) <= not inp_enc_data(ind);
+								Code(ind) <= not Code(ind);
 							end if;
 						else
-							valid_out <= '0';
+							Valid <= '0';
 						end if;
 						--out_rdy <= '1';
-						out_data <= inp_enc_data(11) & inp_enc_data(10) & inp_enc_data(9) & inp_enc_data(8) &
-										inp_enc_data(6) & inp_enc_data(5) & inp_enc_data(4) & inp_enc_data(2);
+						DecOutByte <= Code(11) & Code(10) & Code(9) & Code(8) &
+										Code(6) & Code(5) & Code(4) & Code(2);
 					end if;
 				end if;
 			end if;
