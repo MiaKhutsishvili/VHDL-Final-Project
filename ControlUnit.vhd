@@ -6,6 +6,7 @@
 -- Module Name:    ControlUnit - Behavioral 
 -- Project Name:   Logical Circuits final projrct
 -- Description:    This module will shape the packets
+-- Done.
 ----------------------------------------------------------------------------------
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
@@ -13,99 +14,97 @@ use IEEE.NUMERIC_STD.ALL;
 use work.Packages.ALL;
 
 entity ControlUnit is
-    Port ( in_data : in Byte;								-- 8 bit input data
-			  packet_type : inout pack_type;				-- Determines the type packet
-
-			  out_data : out data_packet;					-- Whole packet output
+    Port ( InByte : in byte;									-- 8 bit input data
+	 
+			  Switch : out main_switch;						-- 0 is RAM mode / 1 is ALU mode
+			  Packet : out data_packet;						-- The output packet
+			  PackType : inout packet_type;
 
 			  clk : in STD_LOGIC;				
-			  RST : in STD_LOGIC								-- Resets everything
+			  RST : in STD_LOGIC									-- Resets everything
 			);
 end ControlUnit;
 
 architecture Behavioral of ControlUnit is
 	
-	signal packet : data_packet := (others => (others => '0'));		-- Temperory memory for a packet
-	signal step : integer := 0;												-- To save which part of packet is the input
-	signal intSum : integer range -650 to 650 := 0;						-- From -2^7 * 5 to (2^7 - 1) * 5
-	signal bitSum : STD_LOGIC_VECTOR(15 downto 0) := "0000000000000000";
+	signal PackHold : data_packet := (others => (others => '0'));		-- Temperory memory for a packet
+	signal step : integer := 0;
 	
 begin
 
 	process (clk)
+			variable Sum : signed(15 downto 0) := (others => '0');
+			variable PackIsReady : STD_LOGIC := '0';
 	begin
 		if rising_edge(clk) then
 			if RST = '1' then
-				packet <= (others => (others => '0'));
+				PackHold <= (others => (others => '0'));
 				step <= 0;
 			else
 				case step is
 					when 0 =>
-						packet(0) <= in_data;
-					case packet(0) is 																-- Categorizing the packet
+						PackHold(0) <= InByte;
+					case PackHold(0) is 																-- Categorizing the packet
 							when "00000000" | "00000001" | "00000010" | "00000011" =>
-								packet_type <= Operand_Alu;
+								PackType <= Operand_Alu;
 							when "11110000" => 
-								packet_type <= Writ_e;
+								PackType <= Writ_e;
 							when "00001111" =>
-								packet_type <= Rea_d;
+								PackType <= Rea_d;
 							when "00111100" | "00111101" | "00111110" | "00111111" =>
-								packet_type <= Immediate_Alu;
+								PackType <= Immediate_Alu;
 							when "11000000" | "11000001" | "11000010" | "11000011" =>
-								packet_type <= Array_Alu;
+								PackType <= Array_Alu;
 							when "00110000" | "00110001" | "00110010" | "00110011" =>
-								packet_type <= Indirect_Addressing;
+								PackType <= Indirect_Addressing;
 							when "11001111" =>
-								packet_type <= Read_Response;
+								PackType <= Read_Response;
 							when others =>
-								packet_type <= zero;
+								PackType <= zero;
 						end case;	
 						
 					when 1 =>
-						packet(1) <= in_data;
+						PackHold(1) <= InByte;
+						if PackType = Rea_d then
+							PackIsReady := '1';
+						end if;
 					
 					when 2 => 
-						if packet_type = Rea_d then
-							packet(2) <= "00000000";
-							step <= 3;
-						else
-							packet(2) <= in_data;
+						PackHold(2) <= InByte;
+						if PackType = Writ_e then
+							PackIsReady := '1';
 						end if;
 
 					when 3 => 
-						if (packet_type = Rea_d or packet_type = Writ_e) then
-							packet(3) <= "00000000";
-							step <= 4;
-						else
-							packet(3) <= in_data;
+						PackHold(3) <= InByte;
+						if not(PackType = Array_Alu) then
+							PackIsReady := '1';
 						end if;
 						
 					when 4 => 
-						if packet_type = Array_Alu then
-							packet(4) <= in_data;
-						else
-							packet(4) <= "00000000";
-						end if;
-						step <= 5;
-					
-					when 5 => 
-						intSum <= to_integer(signed(packet(0))) + to_integer(signed(packet(1))) +
-									 to_integer(signed(packet(2))) + to_integer(signed(packet(3))) +
-									 to_integer(signed(packet(4)));
-						bitSum <= std_logic_vector(to_signed(intSum, 16));
-						packet(5) <= bitSum(15 downto 8);
-						step <= 6;
-					
-					when 6 =>
-						packet(6) <= bitSum(7 downto 0);
-						step <= 7;
+						PackHold(4) <= InByte;
+	
+					when others => 
+						step <= 0;
 						
-					when others =>
-						out_data <= packet;
-						step <= -1;
 				end case;
-				step <= step + 1;
 				
+				if PackIsReady = '0' then
+					step <= step + 1;
+				else
+					step <= 0;
+					for i in 0 to 4 loop
+							Sum := Sum + signed(PackHold(i));
+						end loop;
+					PackHold(5) <= STD_LOGIC_VECTOR(Sum(15 downto 8)); 
+					PackHold(6) <= STD_LOGIC_VECTOR(Sum(15 downto 8));
+					Packet <= PackHold;
+					if (PackType = Writ_e or PackType = Rea_d) then
+						Switch <= Ram;
+					else
+						Switch <= Alu;
+					end if;
+				end if;
 			end if;
 		end if;
 	end process;
