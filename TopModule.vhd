@@ -33,7 +33,7 @@ architecture Behavioral of TopModule is
 	signal Switch : STD_LOGIC;
 	signal Packet : data_packet;
 	
-	signal PackToRam : data_packet;
+	--signal PackToRam : data_packet;
 	signal RamReadResp : ram_resp_pack;
 	signal RamError : STD_LOGIC;
 	
@@ -75,7 +75,9 @@ begin
 	RAM: entity work.RAM
 		port map
 		(
-			InPack => PackToRam,
+			InChoose => AluEnable,
+			CtrlReq => Packet,
+			AluReq => AluToRam,
 			ReadResp => RamReadResp,			
 			Error => RamError,					
 			RST => RST,
@@ -121,10 +123,10 @@ begin
 		);
 	
 	AluEnable <= Switch or (not(AluDone)); 
-	with AluEnable select
-		PackToRam <= 
-			Packet when '0',
-			AluToRam when others;
+--	with AluEnable select
+--		PackToRam <= 
+--			Packet when '0',
+--			AluToRam when others;
 	Error <= (RamError or AluError) or not(DecValidation);
 
 end Behavioral;
