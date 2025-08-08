@@ -22,6 +22,7 @@ entity ALU is
 			  
 			  Enable : in STD_LOGIC;				-- Alu is On only when we are in Alu Mode.
 			  Error : out STD_LOGIC;
+			  RST : in STD_LOGIC;
 			  clk : in STD_LOGIC
 			 );
 end ALU;
@@ -61,9 +62,7 @@ architecture Behavioral of ALU is
 	signal ArrayIndPusher : integer range 0 to 31 := 0;
 	signal Output : byte := (others => '0');		-- Calculator output
 	signal ReadArray : alu_read_cash_array := (others => (others => '0'));
-	
---	signal RamRespError : STD_LOGIC;
-	
+		
 	signal Step : integer := 0;
 	
 begin
@@ -72,6 +71,23 @@ begin
 	begin
 		if rising_edge(clk) then
 			Error <= '0';
+			if RST = '1' then
+				Error <= '0';
+				Step <= 0;
+				SendToRamPack <= (others => (others => '0'));
+				mode <= (others => '0');
+				RamAdd <= (others => '0');								
+				DataI <= (others => '0');
+				DataII <= (others => '0');
+				AddressI <= (others => '0');
+				AddressII <= (others => '0');
+				AddAddressII <= (others => '0');
+				DestinationAddress <= (others => '0');
+				ArrayLength <= 0;
+				ArrayIndPusher <= 0;
+				Output <= (others => '0');		-- Calculator output
+				ReadArray <= (others => (others => '0'));
+			end if;
 			if Enable = '1' then
 				if (Step = 0 or Finish = '1') then
 					SentToRam <= SendToRamPack;

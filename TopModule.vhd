@@ -96,6 +96,7 @@ begin
 			ReadResponse => RamReadResp,
 			Finish => AluDone,
 			Error => AluError, 
+			RST => RST,
 			clk => clk
 		);
 
