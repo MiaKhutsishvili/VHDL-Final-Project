@@ -16,7 +16,9 @@ package Packages is
 	
 	--type ram_row is array (0 to 7) of byte;
 	type ram_matrix is array (0 to 31) of byte; --Ram_Row;
-	type ram_resp_pack is array (0 to 3) of Byte;  -- to be deleted
+	type ram_resp_pack is array (0 to 3) of byte;  
+	
+	type alu_read_cash_array is array (0 to 31) of byte;
 	
 	function ByteSum (Packet : data_packet) return STD_LOGIC_VECTOR;
 	function CheckSumH (Packet : data_packet) return byte;

@@ -58,10 +58,9 @@ architecture Behavioral of ALU is
 	signal AddAddressII : byte;
 	signal DestinationAddress : byte;
 	signal ArrayLength : integer range 0 to 32 := 0;
-	signal GoneFront : integer range 0 to 31 := 0;
-	signal DesArrayIndPusher : integer range 0 to 31 := 0;
-	signal ReadArrayIndPusher : integer range 0 to 31 := 0;
+	signal ArrayIndPusher : integer range 0 to 31 := 0;
 	signal Output : byte := (others => '0');		-- Calculator output
+	signal ReadArray : alu_read_cash_array := (others => (others => '0'));
 	
 --	signal RamRespError : STD_LOGIC;
 	
@@ -72,8 +71,8 @@ begin
 	process(clk)
 	begin
 		if rising_edge(clk) then
+			Error <= '0';
 			if Enable = '1' then
-				Error <= '0';
 				if (Step = 0 or Finish = '1') then
 					SentToRam <= SendToRamPack;
 					Step <= 0;
@@ -132,36 +131,47 @@ begin
 							AddressI <= InPack(1);
 							DataII <= InPack(2);
 							ArrayLength <= to_integer(unsigned(InPack(3)));
+							if ArrayLength > 32 then
+								Error <= '1';
+							end if;
 							DestinationAddress <= InPack(4);
-							GoneFront <= 0;
-							DesArrayIndPusher <= 0;
-							ReadArrayIndPusher <= 0;
+							ArrayIndPusher <= 0;
+							ReadArray <= (others => (others => '0'));
+							mode <= "00001111";
+						end if;
+						if mode = "00001111" then
+							if Step > ArrayLength then
+								mode <= "11110000";
+								Step <= 0;		-- Step will + 1
+								ArrayIndPusher <= 0;
+							else
+								if 0 < Step then 
+									ReadArray(Step - 1) <= ReadResponse(1);
+								end if;
+								if to_integer(unsigned(AddressI)) + ArrayIndPusher > 31 then
+									AddressI <= (others => '0');
+									ArrayIndPusher <= 0;
+								end if;	
+								RamAdd <= byte(unsigned(AddressI) + to_unsigned(ArrayIndPusher, 8));
+								ArrayIndPusher <= ArrayIndPusher + 1;
+							end if;
+						elsif mode = "11110000" then
+							if Step > ArrayLength then
+								Step <= -1;		-- Step will + 1
+								Finish <= '1';
+							else 
+								Output <= Operator(signed(ReadArray(ArrayIndPusher)), signed(DataII), Operation); -- Initail ArrayIndPusher = 0
+								if to_integer(unsigned(DestinationAddress)) + ArrayIndPusher > 31 then
+									DestinationAddress <= (others => '0');
+									ArrayIndPusher <= 0;
+								end if;	
+								RamAdd <= byte(unsigned(DestinationAddress) + to_unsigned(ArrayIndPusher, 8));
+								ArrayIndPusher <= ArrayIndPusher + 1;
+							end if;
+						else 
+							Error <= '1';
 						end if;
 						
-						if GoneFront < ArrayLength then  -- Clock Step till Step + 1 (Step start from 1)
-							if Step mod 2 = 1 then			-- Data I and Data II are ready, output is being written -> Write
-								mode <= "11110000";
-								DataI <= ReadResponse(1);
-								Output <= Operator(signed(DataI), signed(DataII), Operation);
-								if to_integer(unsigned(DestinationAddress)) + DesArrayIndPusher > 31 then
-									DestinationAddress <= (others => '0');
-									DesArrayIndPusher <= 0;
-								end if;	
-								RamAdd <= byte(unsigned(DestinationAddress) + to_unsigned(DesArrayIndPusher, 8));
-								DesArrayIndPusher <= DesArrayIndPusher + 1;
-							else									-- Data 1 is being read from ram 								-> Read
-								mode <= "00001111";
-								if to_integer(unsigned(AddressI)) + ReadArrayIndPusher > 31 then
-									AddressI <= (others => '0');
-									ReadArrayIndPusher <= 0;
-								end if;	
-								RamAdd <= byte(unsigned(AddressI) + to_unsigned(ReadArrayIndPusher, 8));
-								ReadArrayIndPusher <= ReadArrayIndPusher + 1;
-							end if;
-						else
-							Finish <= '1';
-						end if;
-							
 					when Indirect_Addressing =>
 						if Step = 0 then										-- Clock 0 till 1		
 							AddAddressII <= InPack(2);
