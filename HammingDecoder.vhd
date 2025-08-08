@@ -8,6 +8,7 @@
 -- Description:    This module will encode a 13 bit extended hamming coded data to extract 8 data bits
 
 -- Dependencies:   Odd_Mode = 1 /constant
+-- It takes 14 Clks.
 -- DONE.
 ----------------------------------------------------------------------------------
 
@@ -46,7 +47,8 @@ begin
 					--out_rdy <= '0';
 					ErrorMarker <= "0000";
 					Code <= "0000000000000";
-					cnt <= 0;
+					Code <= DecInBit & Code(12 downto 1);
+					cnt <= 1;
 					ind := 0;
 				else
 					-- taking the input

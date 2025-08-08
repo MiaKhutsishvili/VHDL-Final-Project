@@ -17,7 +17,7 @@ entity ALU is
 			  PackMode : in  packet_type;	
 			  
 			  SentToRam : out data_packet;
-			  ReadResponse : in ram_resp_pack;
+			  ReadResponse : in data_packet;
 			  Finish : inout STD_LOGIC; 
 			  
 			  Enable : in STD_LOGIC;
@@ -66,18 +66,15 @@ architecture Behavioral of ALU is
 begin
 	
 	process(clk)
-		variable CheckH : byte;
-		variable CheckL : byte;
 	begin
 		if rising_edge(clk) then
 			if Enable = '1' then
+				Error <= '0';
 				if (Step = 0 or Finish = '1') then
 					SentToRam <= SendToRamPack;
 					Step <= 0;
 					Finish <= '0';
-						
-					Error <= not(Validate(InPack));
-					
+											
 					case InPack(0)(1 downto 0) is 
 						when "00" =>
 							operation <= Add;
@@ -178,10 +175,8 @@ begin
 				SendToRamPack(2) <= Output;
 				SendToRamPack(3) <= (others => '0');
 				SendToRamPack(4) <= (others => '0');
-				SendToRamPack(5) <= CheckSumH(SendToRamPack);
-				SendToRamPack(6) <= CheckSumL(SendToRamPack);
-			else
-				Error <= '1';
+				SendToRamPack(5) <= (others => '0');
+				SendToRamPack(6) <= (others => '0');
 			end if;
 		end if;
 	end process;
