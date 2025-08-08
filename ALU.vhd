@@ -18,9 +18,9 @@ entity ALU is
 			  
 			  SentToRam : out data_packet;
 			  ReadResponse : in data_packet;
-			  Finish : inout STD_LOGIC; 
+			  Finish : inout STD_LOGIC; 			-- Is 1 when the process is done.
 			  
-			  Enable : in STD_LOGIC;
+			  Enable : in STD_LOGIC;				-- Alu is On only when we are in Alu Mode.
 			  Error : out STD_LOGIC;
 			  clk : in STD_LOGIC
 			 );
@@ -36,28 +36,32 @@ architecture Behavioral of ALU is
 			when Sub => 
 				return std_logic_vector(In1 - In2);
 			when Orr => 
-				return std_logic_vector(In1 or In2);		-- Bitwise or for unsigned = direct or
+				return std_logic_vector(In1 or In2);		-- Bitwise or for signed = direct or
 			when Andd => 
-				return std_logic_vector(In1 and In2);		-- Bitwise and for unsigned = direct and
+				return std_logic_vector(In1 and In2);		-- Bitwise and for signed = direct and
 			when others =>
 				return "00000000";
 		end case;
 	end function;
 	
 	signal operation : Alu_Operation;
+	---
+	--- Ram Interaction
 	signal SendToRamPack: data_packet;
 	signal mode : byte;
+	signal RamAdd : byte;								-- The Address given to the ram
+	---
 	signal DataI : byte := (others => '0');
 	signal DataII : byte := (others => '0');
 	signal AddressI : byte;
 	signal AddressII : byte;
 	signal AddAddressII : byte;
 	signal DestinationAddress : byte;
-	signal ArrayLength : integer range 0 to 31 := 0;
-	signal ArrayOdd : STD_LOGIC;
-	
-	signal RamAdd : byte;
-	signal Output : byte := (others => '0');
+	signal ArrayLength : integer range 0 to 32 := 0;
+	signal GoneFront : integer range 0 to 31 := 0;
+	signal DesArrayIndPusher : integer range 0 to 31 := 0;
+	signal ReadArrayIndPusher : integer range 0 to 31 := 0;
+	signal Output : byte := (others => '0');		-- Calculator output
 	
 --	signal RamRespError : STD_LOGIC;
 	
@@ -86,22 +90,22 @@ begin
 							operation <= Andd;
 						when others =>
 					end case;			
-						
-					AddressI <= InPack(1);
-					RamAdd <= AddressI;
-					mode <= "00001111";
 				end if;
 				
 				case PackMode is 
-					when Operand_Alu => 
-						if Step = 0 then
-						AddressII <= InPack(2);
-						DestinationAddress <= InPack(3);
-						elsif Step = 1 then
+					when Operand_Alu => -- 3 Clocks
+						if Step = 0 then							-- Clock 0 till 1
+							AddressII <= InPack(2);
+							DestinationAddress <= InPack(3);
+							AddressI <= InPack(1);
+							RamAdd <= AddressI;
+							mode <= "00001111";
+						elsif Step = 1 then						-- Clock 1 till 2
 							DataI <= ReadResponse(1);
 							RamAdd <= AddressII;
 							mode <= "00001111";
-						elsif Step = 2 then
+						elsif Step = 2 then						-- Clock 2 till 3
+							DataII <= ReadResponse(1);
 							Output <= Operator(signed(DataI), signed(DataII), Operation);
 							RamAdd <= DestinationAddress;
 							mode <= "11110000";	
@@ -109,10 +113,13 @@ begin
 						end if;
 							
 					when Immediate_Alu =>
-						if Step = 0 then
+						if Step = 0 then							-- Clock 0 till 1
 							DataII <= InPack(2);
 							DestinationAddress <= InPack(3);
-						elsif Step = 1 then
+							AddressI <= InPack(1);
+							RamAdd <= AddressI;
+							mode <= "00001111";
+						elsif Step = 1 then						-- Clock 1 till 2
 							DataI <= ReadResponse(1);
 							Output <= Operator(signed(DataI), signed(DataII), Operation);
 							RamAdd <= DestinationAddress;
@@ -121,45 +128,56 @@ begin
 						end if;
 							
 					when Array_Alu =>
-						if Step = 0 then
+						if Step = 0 then							-- Clock 0 till 1					
+							AddressI <= InPack(1);
 							DataII <= InPack(2);
 							ArrayLength <= to_integer(unsigned(InPack(3)));
-							ArrayOdd <= '0';
 							DestinationAddress <= InPack(4);
-						elsif Step < (ArrayLength + 1) then 
-							if ArrayOdd = '0' then
+							GoneFront <= 0;
+							DesArrayIndPusher <= 0;
+							ReadArrayIndPusher <= 0;
+						end if;
+						
+						if GoneFront < ArrayLength then  -- Clock Step till Step + 1 (Step start from 1)
+							if Step mod 2 = 1 then			-- Data I and Data II are ready, output is being written -> Write
 								mode <= "11110000";
 								DataI <= ReadResponse(1);
 								Output <= Operator(signed(DataI), signed(DataII), Operation);
-								if to_integer(unsigned(DestinationAddress)) + Step - 1 > 31 then
-									DestinationAddress <= "00000000";
+								if to_integer(unsigned(DestinationAddress)) + DesArrayIndPusher > 31 then
+									DestinationAddress <= (others => '0');
+									DesArrayIndPusher <= 0;
 								end if;	
-								RamAdd <= byte(unsigned(DestinationAddress) + to_unsigned(Step - 1, 8));	
-							else
+								RamAdd <= byte(unsigned(DestinationAddress) + to_unsigned(DesArrayIndPusher, 8));
+								DesArrayIndPusher <= DesArrayIndPusher + 1;
+							else									-- Data 1 is being read from ram 								-> Read
 								mode <= "00001111";
-								if to_integer(unsigned(AddressI)) + Step - 1 > 31 then
-									AddressI <= "00000000";
+								if to_integer(unsigned(AddressI)) + ReadArrayIndPusher > 31 then
+									AddressI <= (others => '0');
+									ReadArrayIndPusher <= 0;
 								end if;	
-								RamAdd <= byte(unsigned(AddressI) + to_unsigned(Step - 1, 8));
+								RamAdd <= byte(unsigned(AddressI) + to_unsigned(ReadArrayIndPusher, 8));
+								ReadArrayIndPusher <= ReadArrayIndPusher + 1;
 							end if;
-							ArrayOdd <= not(ArrayOdd);
 						else
 							Finish <= '1';
 						end if;
 							
 					when Indirect_Addressing =>
-						if Step = 0 then
+						if Step = 0 then										-- Clock 0 till 1		
 							AddAddressII <= InPack(2);
 							DestinationAddress <= InPack(3);
-						elsif Step = 1 then
+							AddressI <= InPack(1);
+							RamAdd <= AddressI;
+							mode <= "00001111";
+						elsif Step = 1 then									-- Clock 1 till 2
 							DataI <= ReadResponse(1);
 							mode <= "00001111";
 							RamAdd <= AddAddressII;
-						elsif Step = 2 then
+						elsif Step = 2 then									-- Clock 2 till 3
 							AddressII <= ReadResponse(1);
 							RamAdd <= AddressII;
 							mode <= "00001111";	
-						elsif Step = 3 then
+						elsif Step = 3 then									-- Clock 3 till 4
 							DataII <= ReadResponse(1);
 							Output <= Operator(signed(DataI), signed(DataII), Operation);
 							RamAdd <= DestinationAddress;
