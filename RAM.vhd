@@ -16,7 +16,7 @@ use work.Packages.ALL;
 entity RAM is
     Port ( 	CtrlReq : in  data_packet;						-- Input data packet
 				AluReq : in  data_packet;
-				ReadResp : out Ram_Resp_Pack;					-- Output of read mode
+				ReadResp : out data_packet;					-- Output of read mode
 				InChoose : in STD_LOGIC;
 				Error : out STD_LOGIC;						-- Address Out of Band / CheckSum Fail
 				RST : in  STD_LOGIC;
@@ -37,7 +37,7 @@ begin
 --		variable ColAddress : integer range 0 to 7;
 		variable WriteData : byte;
 		variable bitSum : byte := (others => '0');
-		variable CheckSum : STD_LOGIC;
+		variable cash : data_packet;
 		
 	begin
 		if rising_edge(clk) then
@@ -50,7 +50,7 @@ begin
 					InPack := CtrlReq;
 				end if;
 				Error <= '0';
-				if InPack(0) = "00001111" then
+				if InPack(0) = "00001111" then	-- Function
 					Mode := Rea_d;
 				elsif InPack(0) = "11110000" then
 					Mode := Writ_e;
@@ -62,25 +62,28 @@ begin
 				RowAddress := to_integer(unsigned(InPack(1))); --(7 downto 3)));
 --				ColAddress := to_integer(unsigned(InPack(1)(2 downto 0)));
 				WriteData := InPack(2);
-				CheckSum := Validate(InPack);
-				if (to_integer(unsigned(InPack(1))) < 32 and CheckSum = '1') then
+				if (to_integer(unsigned(InPack(1))) > 31) then
+					Error <= '1';
+				else
 					case Mode is				
 						when Writ_e =>
 							-- Write Operation
 							Memory(RowAddress) <= WriteData;
 						when Rea_d =>
 							-- Read Operation
-							ReadResp(0) <= "11001111";
-							ReadResp(1) <= Memory(RowAddress);
+							cash(0) := "11001111";
+							cash(1) := Memory(RowAddress);
 							bitSum := std_logic_vector(to_signed(-49, 8) + signed(Memory(RowAddress))); 
 							-- Since Row Address is always > 0, => bitSum will always use only 8 bits. max bitSum = 206
-							ReadResp(2) <= "00000000";
-							ReadResp(3) <= bitSum;
+							cash(2) := (others => '0');
+							cash(3) := (others => '0');
+							cash(4) := (others => '0');
+							cash(5) := CheckSumH(cash);
+							cash(6) := CheckSumL(cash);
+							ReadResp <= cash;
 						when others =>
 							Error <= '1';
 					end case;
-				else
-					Error <= '1';
 				end if;
 			end if;
 		end if;

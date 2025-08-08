@@ -20,6 +20,7 @@ entity ControlUnit is
 			  Packet : out data_packet;						-- The output packet
 			  PackMode : out packet_type;
 			 
+			  Validation : out STD_LOGIC;
 			  clk : in STD_LOGIC;				
 			  RST : in STD_LOGIC									-- Resets everything
 			);
@@ -27,7 +28,7 @@ end ControlUnit;
 
 architecture Behavioral of ControlUnit is
 	
-	signal PackHold : data_packet := (others => (others => '0'));		-- Temperory memory for a packet
+	signal PackHold : data_packet := (others => (others => '0'));		-- Cash memory for a packet
 	signal PackType : packet_type;
 
 	signal step : integer := 0;
@@ -40,12 +41,16 @@ begin
 	begin
 		if rising_edge(clk) then
 			if RST = '1' then
-				PackHold <= (others => (others => '0'));
 				step <= 0;
+				
 			else
 				case step is
 					when 0 =>
+						PackIsReady := '0';
+						PackHold <=(others => (others => '0'));
 						PackHold(0) <= InByte;
+						
+					---
 					case PackHold(0) is 																-- Categorizing the packet
 							when "00000000" | "00000001" | "00000010" | "00000011" =>
 								PackType <= Operand_Alu;
@@ -63,43 +68,46 @@ begin
 								PackType <= zero;
 						end case;	
 						PackMode <= PackType;
+					---
 						
 					when 1 =>
 						PackHold(1) <= InByte;
 						if PackType = Rea_d then
-							PackIsReady := '1';
+							Step <= 4;
 						end if;
 					
 					when 2 => 
 						PackHold(2) <= InByte;
 						if PackType = Writ_e then
-							PackIsReady := '1';
+							Step <= 4;
 						end if;
 
 					when 3 => 
 						PackHold(3) <= InByte;
 						if ((PackType = Operand_Alu or PackType = Immediate_Alu) or 
 								PackType = Indirect_Addressing) then
-							PackIsReady := '1';
+							Step <= 4;
 						end if;
 						
 					when 4 => 
 						PackHold(4) <= InByte;
-						if PackType = Array_Alu then
-							PackIsReady := '1';
-						end if;
-	
-					when others => 
-						step <= 0;
+					
+					when 5 => 
+						PackHold(5) <= InByte;
+						
+					when 6 =>
+						PackHold(6) <= InByte;
+						PackIsReady := '1';
+						
+					when others =>
 						
 				end case;
 				
 				if PackIsReady = '0' then
-					step <= step + 1;
+					Step <= Step + 1;
 				else
 					step <= 0;
-					PackHold(5) <= CheckSumH(PackHold); 
-					PackHold(6) <= CheckSumL(PackHold);
+					Validation <= Validate(PackHold);
 					Packet <= PackHold;
 					if (PackType = Writ_e or PackType = Rea_d) then
 						Switch <= '0';
