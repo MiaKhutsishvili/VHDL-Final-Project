@@ -12,7 +12,7 @@ package Packages is
 
 	type data_packet is array (0 to 6) of byte;
 	type packet_type is (Operand_Alu, Writ_e, Rea_d, Immediate_Alu, Array_Alu, Indirect_Addressing, zero);
-	type alu_operation is (Add, Sub, Orr, Andd); --bitwise or and
+	type alu_operation is (Add, Sub, BitwiseOr, BitwiseAnd);
 	
 	--type ram_row is array (0 to 7) of byte;
 	type ram_matrix is array (0 to 31) of byte; --Ram_Row;

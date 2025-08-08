@@ -35,9 +35,9 @@ architecture Behavioral of ALU is
 				return std_logic_vector(In1 + In2);
 			when Sub => 
 				return std_logic_vector(In1 - In2);
-			when Orr => 
+			when BitwiseOr => 
 				return std_logic_vector(In1 or In2);		-- Bitwise or for signed = direct or
-			when Andd => 
+			when BitwiseAnd => 
 				return std_logic_vector(In1 and In2);		-- Bitwise and for signed = direct and
 			when others =>
 				return "00000000";
@@ -84,9 +84,9 @@ begin
 						when "01" => 
 							operation <= Sub;
 						when "10" => 
-							operation <= Orr;
+							operation <= BitwiseOr;
 						when "11" =>
-							operation <= Andd;
+							operation <= BitwiseAnd;
 						when others =>
 					end case;			
 				end if;
