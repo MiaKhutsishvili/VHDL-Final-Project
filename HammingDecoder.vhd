@@ -55,13 +55,14 @@ begin
 					elsif cnt = 13 then 																-- 1 * Clk -> Calculation
 						-- Constructing the new parities
 						TestBenchInputDisplay <= Code;
-						ErrorMarker(0) := Code(0) xor (Code(2) xor (Code(5) xor
-										(Code(8) xor (Code(10)))));
-						ErrorMarker(1) := Code(1) xor (Code(4) xor (Code(5) xor
-										(Code(9) xor (Code(10)))));
-						ErrorMarker(2) := Code(3) xor (Code(6) xor (Code(8) xor
-										(Code(9) xor Code(10))));
-						ErrorMarker(3) := Code(7) xor Code(11);
+						ErrorMarker(0) := Code(0) xor (Code(2) xor (Code(4) xor
+										(Code(6) xor (Code(8) xor Code(10)))));
+						ErrorMarker(1) := Code(1) xor (Code(2) xor (Code(5) xor
+										(Code(6) xor (Code(9) xor Code(10)))));
+						ErrorMarker(2) := Code(3) xor (Code(4) xor (Code(5) xor
+										(Code(6) xor Code(11))));
+						ErrorMarker(3) := Code(7) xor (Code(8) xor (Code(9) xor
+										(Code(10) xor Code(11))));
 						ExtentionBit := Code(0) xor (Code(1) xor (Code(2) xor
 										(Code(3) xor (Code(4) xor (Code(5) xor
 										(Code(6) xor (Code(7) xor (Code(8) xor
