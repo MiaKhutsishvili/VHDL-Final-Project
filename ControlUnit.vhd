@@ -17,9 +17,10 @@ entity ControlUnit is
     Port ( InByte : in byte;									-- 8 bit input data
 	 
 			  Switch : out STD_LOGIC;							-- 0 is RAM mode / 1 is ALU mode
-			  Packet : out data_packet;						-- The output packet
-			  PackMode : out packet_type;
+			  Packet : inout data_packet;						-- The output packet
+			  PackType : inout packet_type;
 			 
+			  PackIsReady : inout STD_LOGIC;
 			  Validation : out STD_LOGIC;
 			  clk : in STD_LOGIC;				
 			  RST : in STD_LOGIC									-- Resets everything
@@ -28,93 +29,93 @@ end ControlUnit;
 
 architecture Behavioral of ControlUnit is
 	
-	signal PackHold : data_packet := (others => (others => '0'));		-- Cash memory for a packet
-	signal PackType : packet_type;
-
-	signal step : integer := 0;
+	signal Step : integer := 0;
 	
 begin
 
-	process (clk)
-			variable Sum : signed(15 downto 0) := (others => '0');
-			variable PackIsReady : STD_LOGIC := '0';
+	process (clk)			
 	begin
 		if rising_edge(clk) then
 			if RST = '1' then
-				step <= 0;
+				Step <= 0;
+				PackIsReady <= '0';
+				PackType <= zero;
 				
 			else
 				case step is
 					when 0 =>
-						PackIsReady := '0';
-						PackHold <=(others => (others => '0'));
-						PackHold(0) <= InByte;
+						PackIsReady <= '0';
+						Packet <= (others => (others => '0'));
+						Packet(0) <= InByte;
 						
-					---
-					case PackHold(0) is 																-- Categorizing the packet
-							when "00000000" | "00000001" | "00000010" | "00000011" =>
-								PackType <= Operand_Alu;
-							when "11110000" => 
-								PackType <= Writ_e;
-							when "00001111" =>
-								PackType <= Rea_d;
-							when "00111100" | "00111101" | "00111110" | "00111111" =>
-								PackType <= Immediate_Alu;
-							when "11000000" | "11000001" | "11000010" | "11000011" =>
-								PackType <= Array_Alu;
-							when "00110000" | "00110001" | "00110010" | "00110011" =>
-								PackType <= Indirect_Addressing;
-							when others =>
-								PackType <= zero;
-						end case;	
-						PackMode <= PackType;
-					---
+						---
+						case InByte is 																-- Categorizing the packet
+								when "00000000" | "00000001" | "00000010" | "00000011" =>
+									PackType <= Operand_Alu;
+								when "11110000" => 
+									PackType <= Writ_e;
+								when "00001111" =>
+									PackType <= Rea_d;
+								when "00111100" | "00111101" | "00111110" | "00111111" =>
+									PackType <= Immediate_Alu;
+								when "11000000" | "11000001" | "11000010" | "11000011" =>
+									PackType <= Array_Alu;
+								when "00110000" | "00110001" | "00110010" | "00110011" =>
+									PackType <= Indirect_Addressing;
+								when others =>
+									PackType <= zero;
+							end case;	
+						---
+						Step <= Step + 1;
 						
 					when 1 =>
-						PackHold(1) <= InByte;
+						Packet(1) <= InByte;
 						if PackType = Rea_d then
-							Step <= 4;
+							Step <= 5;
+						else
+							Step <= Step + 1;
 						end if;
 					
 					when 2 => 
-						PackHold(2) <= InByte;
+						Packet(2) <= InByte;
 						if PackType = Writ_e then
-							Step <= 4;
+							Step <= 5;
+						else
+							Step <= Step + 1;
 						end if;
 
 					when 3 => 
-						PackHold(3) <= InByte;
+						Packet(3) <= InByte;
 						if ((PackType = Operand_Alu or PackType = Immediate_Alu) or 
 								PackType = Indirect_Addressing) then
-							Step <= 4;
+							Step <= 5;
+						else
+							Step <= Step + 1;
 						end if;
 						
 					when 4 => 
-						PackHold(4) <= InByte;
-					
+						Packet(4) <= InByte;
+						Step <= Step + 1;
+						
 					when 5 => 
-						PackHold(5) <= InByte;
+						Packet(5) <= InByte;
+						Step <= Step + 1;
 						
 					when 6 =>
-						PackHold(6) <= InByte;
-						PackIsReady := '1';
+						Packet(6) <= InByte;
+						if (PackType = Writ_e or PackType = Rea_d) then
+							Switch <= '0';
+						else
+							Switch <= '1';
+						end if;
+						Step <= Step + 1;
 						
 					when others =>
+						Step <= 0;
+						Validation <= Validate(Packet);
+						PackIsReady <= '1';
 						
 				end case;
-				
-				if PackIsReady = '0' then
-					Step <= Step + 1;
-				else
-					step <= 0;
-					Validation <= Validate(PackHold);
-					Packet <= PackHold;
-					if (PackType = Writ_e or PackType = Rea_d) then
-						Switch <= '0';
-					else
-						Switch <= '1';
-					end if;
-				end if;
 			end if;
 		end if;
 	end process;
