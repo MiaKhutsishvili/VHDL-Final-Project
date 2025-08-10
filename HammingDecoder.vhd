@@ -82,8 +82,8 @@ begin
 						end if;
 					else 																					-- 1 * Clk -> Output 
 						cnt <= 0;
-						DecOutByte <= code(11) & code(10) & code (9) & code(8) & 
-										  code(6) & code(5) & code(4) & code(2);
+						DecOutByte <= code(2) & code(4) & code (5) & code(6) & 
+										  code(8) & code(9) & code(10) & code(11);
 						OutRdy <= '1';
 					end if;
 				end if;
