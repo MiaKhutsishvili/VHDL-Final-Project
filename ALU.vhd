@@ -16,7 +16,7 @@ entity ALU is
     Port ( InPack : in  data_packet;
 			  PackMode : in  packet_type;	
 			  
-			  SentToRam : out data_packet;
+			  SendToRam : out data_packet;
 			  ReadResponse : in data_packet;
 			  Finish : inout STD_LOGIC; 			-- Is 1 when the process is done.
 			  
@@ -47,20 +47,13 @@ architecture Behavioral of ALU is
 	
 	signal operation : Alu_Operation;
 	---
-	--- Ram Interaction
-	signal SendToRamPack: data_packet;
-	signal mode : byte;
-	signal RamAdd : byte;								-- The Address given to the ram
-	---
 	signal DataI : byte := (others => '0');
 	signal DataII : byte := (others => '0');
-	signal AddressI : byte;
-	signal AddressII : byte;
-	signal AddAddressII : byte;
+		
 	signal DestinationAddress : byte;
 	signal ArrayLength : integer range 0 to 32 := 0;
 	signal ArrayIndPusher : integer range 0 to 31 := 0;
-	signal Output : byte := (others => '0');		-- Calculator output
+	
 	signal ReadArray : alu_read_cash_array := (others => (others => '0'));
 		
 	signal Step : integer := 0;
@@ -68,29 +61,31 @@ architecture Behavioral of ALU is
 begin
 	
 	process(clk)
+		-- Ram Interaction
+		variable mode : byte := (others => '0');
+		variable RamAddress : byte := (others => '0');								-- The Address given to the ram
+		variable RamDataToWrite : byte := (others => '0');
+		variable AddressI : byte := (others => '0');
+		variable AddressII : byte := (others => '0');
+		variable AddAddressII : byte := (others => '0');
+		
+		-- Calculator Interaction		
+		
 	begin
 		if rising_edge(clk) then
 			Error <= '0';
 			if RST = '1' then
 				Error <= '0';
 				Step <= 0;
-				SendToRamPack <= (others => (others => '0'));
-				mode <= (others => '0');
-				RamAdd <= (others => '0');								
 				DataI <= (others => '0');
 				DataII <= (others => '0');
-				AddressI <= (others => '0');
-				AddressII <= (others => '0');
-				AddAddressII <= (others => '0');
 				DestinationAddress <= (others => '0');
 				ArrayLength <= 0;
 				ArrayIndPusher <= 0;
-				Output <= (others => '0');		-- Calculator output
 				ReadArray <= (others => (others => '0'));
 			end if;
 			if Enable = '1' then
-				if (Step = 0 or Finish = '1') then
-					SentToRam <= SendToRamPack;
+				if (Step = 0 or Finish = '1') then				-- 1 * Clk -> 
 					Step <= 0;
 					Finish <= '0';
 											
@@ -110,20 +105,20 @@ begin
 				case PackMode is 
 					when Operand_Alu => -- 3 Clocks
 						if Step = 0 then							-- Clock 0 till 1
-							AddressII <= InPack(2);
 							DestinationAddress <= InPack(3);
-							AddressI <= InPack(1);
-							RamAdd <= AddressI;
-							mode <= "00001111";
+							AddressI := InPack(1);
+							RamAddress := AddressI;
+							mode := "00001111";
 						elsif Step = 1 then						-- Clock 1 till 2
 							DataI <= ReadResponse(1);
-							RamAdd <= AddressII;
-							mode <= "00001111";
+							AddressII := InPack(2);
+							RamAddress := AddressII;
+							mode := "00001111";
 						elsif Step = 2 then						-- Clock 2 till 3
-							DataII <= ReadResponse(1);
-							Output <= Operator(signed(DataI), signed(DataII), Operation);
-							RamAdd <= DestinationAddress;
-							mode <= "11110000";	
+							--DataII <= ReadResponse(1);
+							RamDataToWrite := Operator(signed(DataI), signed(ReadResponse(1)), Operation);
+							RamAddress := DestinationAddress;
+							mode := "11110000";	
 							Finish <= '1';
 						end if;
 							
@@ -131,44 +126,40 @@ begin
 						if Step = 0 then							-- Clock 0 till 1
 							DataII <= InPack(2);
 							DestinationAddress <= InPack(3);
-							AddressI <= InPack(1);
-							RamAdd <= AddressI;
-							mode <= "00001111";
+							AddressI := InPack(1);
+							RamAddress := AddressI;
+							mode := "00001111";
 						elsif Step = 1 then						-- Clock 1 till 2
-							DataI <= ReadResponse(1);
-							Output <= Operator(signed(DataI), signed(DataII), Operation);
-							RamAdd <= DestinationAddress;
-							mode <= "11110000";
+							--DataI <= ReadResponse(1);
+							RamDataToWrite := Operator(signed(ReadResponse(1)), signed(DataII), Operation);
+							RamAddress := DestinationAddress;
+							mode := "11110000";
 							Finish <= '1';
 						end if;
 							
 					when Array_Alu =>
 						if Step = 0 then							-- Clock 0 till 1					
-							AddressI <= InPack(1);
+							AddressI := InPack(1);
 							DataII <= InPack(2);
 							ArrayLength <= to_integer(unsigned(InPack(3)));
-							if ArrayLength > 32 then
+							if to_integer(unsigned(InPack(3))) > 32 then
 								Error <= '1';
 							end if;
 							DestinationAddress <= InPack(4);
 							ArrayIndPusher <= 0;
 							ReadArray <= (others => (others => '0'));
-							mode <= "00001111";
+							mode := "00001111";
 						end if;
 						if mode = "00001111" then
 							if Step > ArrayLength then
-								mode <= "11110000";
+								mode := "11110000";
 								Step <= 0;		-- Step will + 1
 								ArrayIndPusher <= 0;
 							else
 								if 0 < Step then 
 									ReadArray(Step - 1) <= ReadResponse(1);
-								end if;
-								if to_integer(unsigned(AddressI)) + ArrayIndPusher > 31 then
-									AddressI <= (others => '0');
-									ArrayIndPusher <= 0;
 								end if;	
-								RamAdd <= byte(unsigned(AddressI) + to_unsigned(ArrayIndPusher, 8));
+								RamAddress := byte((unsigned(AddressI) + to_unsigned(ArrayIndPusher, 8)) mod 32);
 								ArrayIndPusher <= ArrayIndPusher + 1;
 							end if;
 						elsif mode = "11110000" then
@@ -176,12 +167,8 @@ begin
 								Step <= -1;		-- Step will + 1
 								Finish <= '1';
 							else 
-								Output <= Operator(signed(ReadArray(ArrayIndPusher)), signed(DataII), Operation); -- Initail ArrayIndPusher = 0
-								if to_integer(unsigned(DestinationAddress)) + ArrayIndPusher > 31 then
-									DestinationAddress <= (others => '0');
-									ArrayIndPusher <= 0;
-								end if;	
-								RamAdd <= byte(unsigned(DestinationAddress) + to_unsigned(ArrayIndPusher, 8));
+								RamDataToWrite := Operator(signed(ReadArray(ArrayIndPusher)), signed(DataII), Operation); -- Initail ArrayIndPusher = 0	
+								RamAddress := byte((unsigned(DestinationAddress) + to_unsigned(ArrayIndPusher, 8)) mod 32);
 								ArrayIndPusher <= ArrayIndPusher + 1;
 							end if;
 						else 
@@ -190,37 +177,37 @@ begin
 						
 					when Indirect_Addressing =>
 						if Step = 0 then										-- Clock 0 till 1		
-							AddAddressII <= InPack(2);
 							DestinationAddress <= InPack(3);
-							AddressI <= InPack(1);
-							RamAdd <= AddressI;
-							mode <= "00001111";
+							AddressI := InPack(1);
+							RamAddress := AddressI;
+							mode := "00001111";
 						elsif Step = 1 then									-- Clock 1 till 2
+							AddAddressII := InPack(2);
 							DataI <= ReadResponse(1);
-							mode <= "00001111";
-							RamAdd <= AddAddressII;
+							mode := "00001111";
+							RamAddress := AddAddressII;
 						elsif Step = 2 then									-- Clock 2 till 3
-							AddressII <= ReadResponse(1);
-							RamAdd <= AddressII;
-							mode <= "00001111";	
+							AddressII := ReadResponse(1);
+							RamAddress := AddressII;
+							mode := "00001111";	
 						elsif Step = 3 then									-- Clock 3 till 4
-							DataII <= ReadResponse(1);
-							Output <= Operator(signed(DataI), signed(DataII), Operation);
-							RamAdd <= DestinationAddress;
-							mode <= "11110000";
+							--DataII <= ReadResponse(1);
+							RamDataToWrite := Operator(signed(DataI), signed(ReadResponse(1)), Operation);
+							RamAddress := DestinationAddress;
+							mode := "11110000";
 							Finish <= '1';
 						end if;
 					when others =>
 						Error <= '1';
 				end case;
 				Step <= Step + 1;
-				SendToRamPack(0) <= mode;
-				SendToRamPack(1) <= RamAdd;
-				SendToRamPack(2) <= Output;
-				SendToRamPack(3) <= (others => '0');
-				SendToRamPack(4) <= (others => '0');
-				SendToRamPack(5) <= (others => '0');
-				SendToRamPack(6) <= (others => '0');
+				SendToRam(0) <= mode;
+				SendToRam(1) <= RamAddress;
+				SendToRam(2) <= RamDataToWrite;
+				SendToRam(3) <= (others => '0');
+				SendToRam(4) <= (others => '0');
+				SendToRam(5) <= (others => '0');
+				SendToRam(6) <= (others => '0');
 			end if;
 		end if;
 	end process;
