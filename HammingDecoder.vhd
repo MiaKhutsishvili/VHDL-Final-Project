@@ -42,7 +42,7 @@ begin
 		begin
 			if rising_edge(clk) then
 				if RST = '1' then 
-					Valid <= '0';
+					Valid <= '1';
 					OutRdy <= '0';
 					ErrorMarker := "0000";
 					Code <= "0000000000000";
