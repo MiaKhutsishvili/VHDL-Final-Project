@@ -18,58 +18,56 @@ use IEEE.NUMERIC_STD.ALL;
 use work.Packages.ALL;
 
 entity HammingDecoder is
-    Port ( DecInBit : in STD_LOGIC;                         		-- 1 bit input data
-			  --in_start : in STD_LOGIC;                         	-- is 1 when the input code starts
-			  RST : in STD_LOGIC;                              	-- resets everything
-			  clk : in STD_LOGIC;
+    Port ( DecInBit : in STD_LOGIC;                         -- 1 bit input data
+			  TestBenchInputDisplay : out byte;
+			  OutRdy : inout  STD_LOGIC;                      	-- is 1 if the output is calculated
+			  DecOutByte : out byte;   								-- 8 bit output data
 			  
-			  --out_rdy : inout  STD_LOGIC;                      	-- is 1 if the output is calculated
-           
-			  DecOutByte : out byte;   										-- 8 bit output data
-           Valid : out STD_LOGIC                      		-- is 1 if there is max 1 error in code
+           Valid : out STD_LOGIC;                     		-- is 1 if there is max 1 error in code
+			  RST : in STD_LOGIC;                              -- resets everything
+			  clk : in STD_LOGIC
 			  );                             	
 end HammingDecoder;
 
 architecture Behavioral of HammingDecoder is
 
-	signal ErrorMarker : STD_LOGIC_VECTOR (3 downto 0); 	  	-- possible 1 error position
-	signal ExtentionBit : STD_LOGIC;                         -- remade bit #13
 	signal Code : STD_LOGIC_VECTOR (12 downto 0);	   		-- 13bit data
 	signal cnt : integer := 0;											-- We don't want it to be initialized after eavh clock!
 	
 begin
 		process (clk)
 			variable ind : integer := 0;  -- possible error position
+			variable ErrorMarker : STD_LOGIC_VECTOR (3 downto 0); 	  	-- possible 1 error position
+			variable ExtentionBit : STD_LOGIC;                         -- remade bit #13
 		begin
 			if rising_edge(clk) then
-				if (RST = '1') then --or in_start = '1') then
+				if RST = '1' then --or in_start = '1') then
 					Valid <= '0';
-					--out_rdy <= '0';
-					ErrorMarker <= "0000";
+					OutRdy <= '0';
+					ErrorMarker := "0000";
 					Code <= "0000000000000";
-					Code <= DecInBit & Code(12 downto 1);
-					cnt <= 1;
+					cnt <= 0;
 					ind := 0;
 				else
 					-- taking the input
 					if cnt < 13 then
 						Code <= DecInBit & Code(12 downto 1);
 						cnt <= cnt + 1;
-					else
-						cnt <= 0;
+					elsif cnt = 13 then
 						-- Constructing the new parities
-						ErrorMarker(0) <= Code(0) xor (Code(2) xor (Code(4) xor
-										(Code(6) xor (Code(8) xor Code(10)))));
-						ErrorMarker(1) <= Code(1) xor (Code(2) xor (Code(5) xor
-										(Code(6) xor (Code(9) xor Code(10)))));
-						ErrorMarker(2) <= Code(3) xor (Code(4) xor (Code(5) xor
-										(Code(6) xor Code(11))));
-						ErrorMarker(3) <= Code(7) xor (Code(8) xor (Code(9) xor
-										(Code(10) xor Code(11))));
-						ExtentionBit <= Code(0) xor (Code(1) xor (Code(2) xor
+						ErrorMarker(0) := Code(0) xor (Code(2) xor (Code(5) xor
+										(Code(8) xor (Code(10)))));
+						ErrorMarker(1) := Code(1) xor (Code(4) xor (Code(5) xor
+										(Code(9) xor (Code(10)))));
+						ErrorMarker(2) := Code(3) xor (Code(6) xor (Code(8) xor
+										(Code(9) xor Code(10))));
+						ErrorMarker(3) := Code(7) xor Code(11);
+						ExtentionBit := Code(0) xor (Code(1) xor (Code(2) xor
 										(Code(3) xor (Code(4) xor (Code(5) xor
 										(Code(6) xor (Code(7) xor (Code(8) xor
 										(Code(9) xor (Code(10) xor Code(11)))))))))));
+						cnt <= cnt + 1;
+						
 						-- Correction
 						ind :=  to_integer(unsigned(ErrorMarker));
 						ind := ind - 1;
@@ -82,9 +80,11 @@ begin
 						else
 							Valid <= '0';
 						end if;
-						--out_rdy <= '1';
-						DecOutByte <= Code(11) & Code(10) & Code(9) & Code(8) &
-										Code(6) & Code(5) & Code(4) & Code(2);
+					else 
+						cnt <= 0;
+						DecOutByte <= code(11) & code(10) & code (9) & code(8) & 
+										  code(6) & code(5) & code(4) & code(2);
+						OutRdy <= '1';
 					end if;
 				end if;
 			end if;
