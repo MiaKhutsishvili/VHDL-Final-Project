@@ -83,12 +83,10 @@ begin
 				ArrayLength <= 0;
 				ArrayIndPusher <= 0;
 				ReadArray <= (others => (others => '0'));
-			end if;
-			if Enable = '1' then
-				if (Step = 0 or Finish = '1') then				-- 1 * Clk -> 
-					Step <= 0;
-					Finish <= '0';
-											
+				Finish <= '1';
+			elsif Enable = '1' then
+				if (Finish = '1') then				-- 1 * Clk -> 
+					Finish <= '0';		
 					case InPack(0)(1 downto 0) is 
 						when "00" =>
 							operation <= Add;
@@ -118,7 +116,8 @@ begin
 							--DataII <= ReadResponse(1);
 							RamDataToWrite := Operator(signed(DataI), signed(ReadResponse(1)), Operation);
 							RamAddress := DestinationAddress;
-							mode := "11110000";	
+							mode := "11110000";
+							Step <= -1;							-- Will + 1
 							Finish <= '1';
 						end if;
 							
@@ -134,45 +133,42 @@ begin
 							RamDataToWrite := Operator(signed(ReadResponse(1)), signed(DataII), Operation);
 							RamAddress := DestinationAddress;
 							mode := "11110000";
+							Step <= -1;
 							Finish <= '1';
 						end if;
 							
 					when Array_Alu =>
-						if Step = 0 then							-- Clock 0 till 1					
-							AddressI := InPack(1);
-							DataII <= InPack(2);
-							ArrayLength <= to_integer(unsigned(InPack(3)));
-							if to_integer(unsigned(InPack(3))) > 32 then
-								Error <= '1';
-							end if;
-							DestinationAddress <= InPack(4);
-							ArrayIndPusher <= 0;
-							ReadArray <= (others => (others => '0'));
-							mode := "00001111";
+						DataII <= InPack(2);
+						ArrayLength <= to_integer(unsigned(InPack(3)));
+						DestinationAddress <= InPack(4);
+						if to_integer(unsigned(InPack(3))) > 32 then
+							Error <= '1';
 						end if;
-						if mode = "00001111" then
-							if Step > ArrayLength then
-								mode := "11110000";
-								Step <= 0;		-- Step will + 1
-								ArrayIndPusher <= 0;
-							else
-								if 0 < Step then 
-									ReadArray(Step - 1) <= ReadResponse(1);
-								end if;	
-								RamAddress := byte((unsigned(AddressI) + to_unsigned(ArrayIndPusher, 8)) mod 32);
-								ArrayIndPusher <= ArrayIndPusher + 1;
-							end if;
-						elsif mode = "11110000" then
-							if Step > ArrayLength then
-								Step <= -1;		-- Step will + 1
+						
+						if (Step > ArrayLength and Finish = '0')  then			-- Clock * size -> max 32
+							mode := "11110000";
+							RamDataToWrite := Operator(signed(ReadArray(ArrayIndPusher)), signed(DataII), Operation); -- Initail ArrayIndPusher = 0	
+							RamAddress := byte((unsigned(DestinationAddress) + to_unsigned(ArrayIndPusher, 8)) mod 32);
+							ArrayIndPusher <= ArrayIndPusher + 1;
+							if ArrayIndPusher = (ArrayLength - 1) then
+								Step <= -1;							-- Will + 1
 								Finish <= '1';
-							else 
-								RamDataToWrite := Operator(signed(ReadArray(ArrayIndPusher)), signed(DataII), Operation); -- Initail ArrayIndPusher = 0	
-								RamAddress := byte((unsigned(DestinationAddress) + to_unsigned(ArrayIndPusher, 8)) mod 32);
-								ArrayIndPusher <= ArrayIndPusher + 1;
+								ArrayIndPusher <= 0;
 							end if;
 						else 
-							Error <= '1';
+							if Step = 0 then							-- Clock * size -> max 32				
+								--AddressI := InPack(1);
+								ReadArray <= (others => (others => '0'));
+								mode := "00001111";
+							end if;
+							if Step > 0 then 
+								ReadArray(Step - 1) <= ReadResponse(1);
+							end if;	
+							RamAddress := byte((unsigned(InPack(1)) + to_unsigned(ArrayIndPusher, 8)) mod 32);
+							ArrayIndPusher <= ArrayIndPusher + 1;
+							if Step = ArrayLength then
+								ArrayIndPusher <= 0;
+							end if;
 						end if;
 						
 					when Indirect_Addressing =>
@@ -195,6 +191,7 @@ begin
 							RamDataToWrite := Operator(signed(DataI), signed(ReadResponse(1)), Operation);
 							RamAddress := DestinationAddress;
 							mode := "11110000";
+							Step <= -1;										   -- Will + 1
 							Finish <= '1';
 						end if;
 					when others =>
