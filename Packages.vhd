@@ -11,7 +11,7 @@ package Packages is
 	subtype byte is STD_LOGIC_VECTOR(7 downto 0);
 
 	type data_packet is array (0 to 6) of byte;
-	type packet_type is (Operand_Alu, Writ_e, Rea_d, Immediate_Alu, Array_Alu, Indirect_Addressing, zero);
+	type packet_type is (zero, Operand_Alu, Writ_e, Rea_d, Immediate_Alu, Array_Alu, Indirect_Addressing);
 	type alu_operation is (Add, Sub, BitwiseOr, BitwiseAnd);
 	
 	--type ram_row is array (0 to 7) of byte;
