@@ -31,7 +31,7 @@ end HammingDecoder;
 
 architecture Behavioral of HammingDecoder is
 
-	signal Code : STD_LOGIC_VECTOR (12 downto 0);	   		-- 13bit data
+	signal Code : STD_LOGIC_VECTOR (0 to 12);	   		-- 13bit data
 	signal cnt : integer := 0;											-- We don't want it to be initialized after eavh clock!
 	
 begin
