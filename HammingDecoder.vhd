@@ -48,12 +48,11 @@ begin
 					Code <= "0000000000000";
 					cnt <= 0;
 					ind := 0;
-				else
-					-- taking the input
+				else																						-- 13 * Clk -> Input
 					if cnt < 13 then
 						Code <= DecInBit & Code(12 downto 1);
 						cnt <= cnt + 1;
-					elsif cnt = 13 then
+					elsif cnt = 13 then 																-- 1 * Clk -> Calculation
 						-- Constructing the new parities
 						ErrorMarker(0) := Code(0) xor (Code(2) xor (Code(5) xor
 										(Code(8) xor (Code(10)))));
@@ -66,8 +65,8 @@ begin
 										(Code(3) xor (Code(4) xor (Code(5) xor
 										(Code(6) xor (Code(7) xor (Code(8) xor
 										(Code(9) xor (Code(10) xor Code(11)))))))))));
-						cnt <= cnt + 1;
 						
+						cnt <= cnt + 1;
 						-- Correction
 						ind :=  to_integer(unsigned(ErrorMarker));
 						ind := ind - 1;
@@ -80,7 +79,7 @@ begin
 						else
 							Valid <= '0';
 						end if;
-					else 
+					else 																					-- 1 * Clk -> Output 
 						cnt <= 0;
 						DecOutByte <= code(11) & code(10) & code (9) & code(8) & 
 										  code(6) & code(5) & code(4) & code(2);
