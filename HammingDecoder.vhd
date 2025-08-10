@@ -50,7 +50,7 @@ begin
 					ind := 0;
 				else																						-- 13 * Clk -> Input
 					if cnt < 13 then
-						Code <= DecInBit & Code(12 downto 1);
+						Code <= Code(1 to 12) & DecInBit;
 						cnt <= cnt + 1;
 					elsif cnt = 13 then 																-- 1 * Clk -> Calculation
 						-- Constructing the new parities
