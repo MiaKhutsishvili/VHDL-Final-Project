@@ -17,7 +17,10 @@ use work.Packages.All;
 entity HammingEncoder is
     Port ( BitIn : in  STD_LOGIC;      -- Input data
 	        BitOut : out  STD_LOGIC;    -- Hamming coded data
-			 
+			  TestBenchCheck : out STD_LOGIC_VECTOR(0 to 12);
+			  TestBenchInputDisplay : out byte;
+			  OutRdy : inout STD_LOGIC := '0';
+			  
            RST : in  STD_LOGIC;          		-- Setting everything to the default
            clk : in STD_LOGIC		        		-- Receiving sequential data
 			 );    
@@ -26,10 +29,9 @@ end HammingEncoder;
 architecture Behavioral of HammingEncoder is
 
 	signal InCode : byte := (others => '0');
-	signal Encoded : STD_LOGIC_VECTOR(12 downto 0) := (others => '0');
+	signal Encoded : STD_LOGIC_VECTOR(0 to 12) := (others => '0');
 	signal InCnt : integer := 0;
 	signal OutCnt : integer := 0;
-	signal OutRdy : STD_LOGIC;
 
 begin
 
@@ -43,35 +45,36 @@ begin
 				OutCnt <= 0;
 				OutRdy <= '0';
 			else
-				if InCnt < 8 then
-					OutRdy <= '0';
+				if InCnt < 8 then											-- 8 * Clk -> Input
 					InCode <= BitIn & InCode(7 downto 1);
 					InCnt <= InCnt + 1;
-				else
-					InCnt <= 0;
-					Encoded(2) <= InCode(0);
-					Encoded(4) <= InCode(1);
-					Encoded(5) <= InCode(2);
-					Encoded(6) <= InCode(3);
-					Encoded(8) <= InCode(4);
-					Encoded(9) <= InCode(5);
-					Encoded(10) <= InCode(6);
-					Encoded(12) <= InCode(7);
+				elsif InCnt = 8 then										-- 1 * Clk -> Calculation
+					TestBenchInputDisplay <= InCode;
+					Encoded(2) <= InCode(7);
+					Encoded(4) <= InCode(6);
+					Encoded(5) <= InCode(5);
+					Encoded(6) <= InCode(4);
+					Encoded(8) <= InCode(3);
+					Encoded(9) <= InCode(2);
+					Encoded(10) <= InCode(1);
+					Encoded(11) <= InCode(0);
 					-- Assigning parities
-					Encoded(0) <= (((Encoded(2) xor Encoded(4)) xor Encoded(6)) xor Encoded(8)) xor Encoded(10);
-					Encoded(1) <= (((Encoded(2) xor Encoded(5)) xor Encoded(6)) xor Encoded(9)) xor Encoded(10);
-					Encoded(3) <= ((Encoded(4) xor Encoded(5)) xor Encoded(6)) xor Encoded(11);
-					Encoded(7) <= ((Encoded(8) xor Encoded(9)) xor Encoded(10)) xor Encoded(11);
-					Encoded(12) <= (((((Encoded(0) xor Encoded(1)) xor Encoded(2)) xor Encoded(3)) xor Encoded(4)) xor Encoded(5)) xor
-									(((((Encoded(6) xor Encoded(7)) xor Encoded(8)) xor Encoded(9)) xor Encoded(10)) xor Encoded(11));
+					Encoded(0) <= (((InCode(7) xor InCode(6)) xor InCode(4)) xor InCode(3)) xor InCode(1);	
+					Encoded(1) <= (((InCode(7) xor InCode(5)) xor InCode(4)) xor InCode(2)) xor InCode(1);	
+					Encoded(3) <= ((InCode(6) xor InCode(5)) xor InCode(4)) xor InCode(0);	
+					Encoded(7) <= ((InCode(3) xor InCode(2)) xor InCode(1)) xor InCode(0);
+					Encoded(12) <= ((((InCode(7) xor InCode(6)) xor InCode(5)) xor InCode(3)) xor InCode(2)) xor InCode(0);	
+					InCnt <= InCnt + 1;
+				else 															-- 14 * Clk -> Output
+					TestBenchCheck <= Encoded;
 					OutRdy <= '1';
-				end if;
-				if OutRdy = '1' then
 					if OutCnt < 13 then
 						BitOut <= Encoded(OutCnt);
 						OutCnt <= OutCnt + 1;
 					else
+						InCnt <= 0;
 						OutCnt <= 0;
+						OutRdy <= '0';
 					end if;
 				end if;
 			end if;
