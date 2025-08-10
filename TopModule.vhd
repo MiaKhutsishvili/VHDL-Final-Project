@@ -92,7 +92,7 @@ begin
 			Enable => AluEnable,
 			InPack => Packet,
 			PackMode => PackMode,
-			SentToRam => AluToRam,
+			SendToRam => AluToRam,
 			ReadResponse => RamReadResp,
 			Finish => AluDone,
 			Error => AluError, 
