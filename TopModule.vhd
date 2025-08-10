@@ -40,7 +40,7 @@ architecture Behavioral of TopModule is
 	
 	signal AluEnable : STD_LOGIC;
 	--signal PackToAlu : data_packet;
-	signal PackMode : packet_type;
+	signal PackType : packet_type;
 	signal AluToRam : data_packet;
 	--signal RamToAlu : ram_resp_pack;
 	signal AluDone : STD_LOGIC;
@@ -69,7 +69,7 @@ begin
 			Validation => PacketValidation,
 			Switch => Switch,						
 			Packet => Packet,		
-			PackMode => PackMode,
+			PackType => PackType,
 			RST => RST,
 			clk => clk
 		);
@@ -91,7 +91,7 @@ begin
 		(
 			Enable => AluEnable,
 			InPack => Packet,
-			PackMode => PackMode,
+			PackMode => PackType,
 			SendToRam => AluToRam,
 			ReadResponse => RamReadResp,
 			Finish => AluDone,
