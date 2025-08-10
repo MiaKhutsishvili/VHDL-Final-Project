@@ -19,7 +19,7 @@ use work.Packages.ALL;
 
 entity HammingDecoder is
     Port ( DecInBit : in STD_LOGIC;                         -- 1 bit input data
-			  TestBenchInputDisplay : out byte;
+			  TestBenchInputDisplay : out STD_LOGIC_VECTOR (0 to 12);
 			  OutRdy : inout  STD_LOGIC;                      	-- is 1 if the output is calculated
 			  DecOutByte : out byte;   								-- 8 bit output data
 			  
@@ -41,7 +41,7 @@ begin
 			variable ExtentionBit : STD_LOGIC;                         -- remade bit #13
 		begin
 			if rising_edge(clk) then
-				if RST = '1' then --or in_start = '1') then
+				if RST = '1' then 
 					Valid <= '0';
 					OutRdy <= '0';
 					ErrorMarker := "0000";
@@ -54,6 +54,7 @@ begin
 						cnt <= cnt + 1;
 					elsif cnt = 13 then 																-- 1 * Clk -> Calculation
 						-- Constructing the new parities
+						TestBenchInputDisplay <= Code;
 						ErrorMarker(0) := Code(0) xor (Code(2) xor (Code(5) xor
 										(Code(8) xor (Code(10)))));
 						ErrorMarker(1) := Code(1) xor (Code(4) xor (Code(5) xor
