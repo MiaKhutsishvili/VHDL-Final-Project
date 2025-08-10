@@ -17,6 +17,7 @@ entity RAM is
     Port ( 	CtrlReq : in  data_packet;						-- Input data packet
 				AluReq : in  data_packet;
 				ReadResp : out data_packet;					-- Output of read mode
+				ReadRespReady : out STD_LOGIC;
 				InChoose : in STD_LOGIC;
 				Error : out STD_LOGIC;						-- Address Out of Band / CheckSum Fail
 				RST : in  STD_LOGIC;
@@ -36,13 +37,16 @@ begin
 		variable RowAddress : integer range 0 to 31;
 --		variable ColAddress : integer range 0 to 7;
 		variable WriteData : byte;
-		variable bitSum : byte := (others => '0');
 		variable cash : data_packet;
 		
 	begin
 		if rising_edge(clk) then
 			if RST = '1' then
 				Memory <= (others => (others => '0')); 
+				ReadRespReady <= '0';
+				InPack :=(others => (others => '0'));
+				WriteData := (others => '0');
+				cash := (others => (others => '0'));
 			else
 				if InChoose = '1' then
 					InPack := AluReq;
@@ -50,6 +54,7 @@ begin
 					InPack := CtrlReq;
 				end if;
 				Error <= '0';
+				
 				if InPack(0) = "00001111" then	-- Function
 					Mode := Rea_d;
 				elsif InPack(0) = "11110000" then
@@ -73,14 +78,13 @@ begin
 							-- Read Operation
 							cash(0) := "11001111";
 							cash(1) := Memory(RowAddress);
-							bitSum := std_logic_vector(to_signed(-49, 8) + signed(Memory(RowAddress))); 
-							-- Since Row Address is always > 0, => bitSum will always use only 8 bits. max bitSum = 206
 							cash(2) := (others => '0');
 							cash(3) := (others => '0');
 							cash(4) := (others => '0');
 							cash(5) := CheckSumH(cash);
 							cash(6) := CheckSumL(cash);
 							ReadResp <= cash;
+							ReadRespReady <= '1';
 						when others =>
 							Error <= '1';
 					end case;
