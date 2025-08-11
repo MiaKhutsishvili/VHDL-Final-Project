@@ -110,7 +110,25 @@ BEGIN
 		-- Test #2
 		-- Input : "0110101100100" , Answer : "11010010"
 		Input := "0110101100100";
-		for i in 0 to 12 loop
+		for i in 12 downto 0 loop
+			DecInBit <= Input(i);
+			wait for 10 ns;
+		end loop;
+		wait for 2*clk_period;
+		
+		-- Test #3
+		-- Input : "0110101100100" With 1 error , Answer : "11010010"
+		Input := "1110101100100";
+		for i in 12 downto 0 loop
+			DecInBit <= Input(i);
+			wait for 10 ns;
+		end loop;
+		wait for 2*clk_period;
+		
+		-- Test #4
+		-- Input : "1111110000011" With 2 error , Answer : "11110000"
+		Input := "1111110011011";
+		for i in 12 downto 0 loop
 			DecInBit <= Input(i);
 			wait for 10 ns;
 		end loop;
