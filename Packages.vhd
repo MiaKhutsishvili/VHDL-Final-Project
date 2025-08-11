@@ -9,7 +9,8 @@ use IEEE.NUMERIC_STD.ALL;
 package Packages is
 
 	subtype byte is STD_LOGIC_VECTOR(7 downto 0);
-
+	subtype hamming is STD_LOGIC_VECTOR(0 to 12);
+	type hamming_packet is array (0 to 6) of hamming;
 	type data_packet is array (0 to 6) of byte;
 	type packet_type is (zero, Operand_Alu, Writ_e, Rea_d, Immediate_Alu, Array_Alu, Indirect_Addressing);
 	type alu_operation is (Add, Sub, BitwiseOr, BitwiseAnd);
