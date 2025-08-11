@@ -42,7 +42,7 @@ begin
 		begin
 			if rising_edge(clk) then
 				if RST = '1' then 
-					Valid <= '1';
+					Valid <= '0';
 					OutRdy <= '0';
 					ErrorMarker := "0000";
 					Code <= "0000000000000";
@@ -72,12 +72,13 @@ begin
 						-- Correction
 						ind :=  to_integer(unsigned(ErrorMarker));
 						ind := ind - 1;
+						if (ind > -1 and ind < 13) then
+								Code(ind) <= not Code(ind);
+						end if;
+						
 						if ((ind = -1 and ExtentionBit = Code(12)) or
 							  ((ind > -1 and ind < 12) and (ExtentionBit = not Code(12)))) then
 							Valid <= '1';
-							if ind > -1 then
-								Code(ind) <= not Code(ind);
-							end if;
 						else
 							Valid <= '0';
 						end if;
