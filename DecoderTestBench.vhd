@@ -1,29 +1,5 @@
 --------------------------------------------------------------------------------
--- Company: 
--- Engineer:
---
--- Create Date:   15:01:50 08/10/2025
--- Design Name:   
--- Module Name:   /home/ise/IDK/DecoderTestBench.vhd
--- Project Name:  IDK
--- Target Device:  
--- Tool versions:  
--- Description:   
--- 
--- VHDL Test Bench Created by ISE for module: HammingDecoder
--- 
--- Dependencies:
--- 
--- Revision:
--- Revision 0.01 - File Created
--- Additional Comments:
---
--- Notes: 
--- This testbench has been automatically generated using types std_logic and
--- std_logic_vector for the ports of the unit under test.  Xilinx recommends
--- that these types always be used for the top-level I/O of a design in order
--- to guarantee that the testbench will bind correctly to the post-implementation 
--- simulation model.
+-- HAMMING DECODER TEST BENCH
 --------------------------------------------------------------------------------
 library IEEE;
 USE IEEE.STD_LOGIC_1164.ALL;
@@ -43,7 +19,7 @@ ARCHITECTURE behavior OF DecoderTestBench IS
          TestBenchInputDisplay : out STD_LOGIC_VECTOR (0 to 12);
          OutRdy : INOUT  std_logic;
          DecOutByte : OUT  std_logic_vector(7 downto 0);
-         Valid : OUT  std_logic;
+         Valid : INOUT  std_logic;
          RST : IN  std_logic;
          clk : IN  std_logic
         );
@@ -91,17 +67,18 @@ BEGIN
 
    -- Stimulus process
    stim_proc: process
-		variable Input : std_logic_vector(12 downto 0);
+		variable Input : hamming;
    begin		
       -- hold reset state for 100 ns.
       RST <= '1';
       wait for clk_period*10;
 		RST <= '0';
 		
+		-- Rightest is first Psition.
       -- Test #1
 		-- Input : "1110111011110" , Answer : "11111111"
 		Input := "1110111011110";
-		for i in 12 downto 0 loop
+		for i in 0 to 12 loop
 			DecInBit <= Input(i);
 			wait for 10 ns;
 		end loop;
@@ -110,7 +87,7 @@ BEGIN
 		-- Test #2
 		-- Input : "0110101100100" , Answer : "11010010"
 		Input := "0110101100100";
-		for i in 12 downto 0 loop
+		for i in 0 to 12 loop
 			DecInBit <= Input(i);
 			wait for 10 ns;
 		end loop;
@@ -119,7 +96,7 @@ BEGIN
 		-- Test #3
 		-- Input : "0110101100100" With 1 error , Answer : "11010010"
 		Input := "1110101100100";
-		for i in 12 downto 0 loop
+		for i in 0 to 12 loop
 			DecInBit <= Input(i);
 			wait for 10 ns;
 		end loop;
@@ -128,7 +105,7 @@ BEGIN
 		-- Test #4
 		-- Input : "1111110000011" With 2 error , Answer : "11110000"
 		Input := "1111110011011";
-		for i in 12 downto 0 loop
+		for i in 0 to 12 loop
 			DecInBit <= Input(i);
 			wait for 10 ns;
 		end loop;
