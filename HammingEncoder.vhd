@@ -17,7 +17,7 @@ use work.Packages.All;
 entity HammingEncoder is
     Port ( BitIn : in  STD_LOGIC;      -- Input data
 	        BitOut : out  STD_LOGIC;    -- Hamming coded data
-			  TestBenchCheck : out STD_LOGIC_VECTOR(0 to 12);
+			  TestBenchCheck : out hamming;
 			  TestBenchInputDisplay : out byte;
 			  OutRdy : inout STD_LOGIC := '0';
 			  
