@@ -19,11 +19,11 @@ use work.Packages.ALL;
 
 entity HammingDecoder is
     Port ( DecInBit : in STD_LOGIC;                         -- 1 bit input data
-			  TestBenchInputDisplay : out STD_LOGIC_VECTOR (0 to 12);
+			  TestBenchInputDisplay : out hamming;
 			  OutRdy : inout  STD_LOGIC;                      	-- is 1 if the output is calculated
 			  DecOutByte : out byte;   								-- 8 bit output data
 			  
-           Valid : out STD_LOGIC;                     		-- is 1 if there is max 1 error in code
+           Valid : inout STD_LOGIC;                     		-- is 1 if there is max 1 error in code
 			  RST : in STD_LOGIC;                              -- resets everything
 			  clk : in STD_LOGIC
 			  );                             	
@@ -31,7 +31,7 @@ end HammingDecoder;
 
 architecture Behavioral of HammingDecoder is
 
-	signal Code : STD_LOGIC_VECTOR (0 to 12);	   		-- 13bit data
+	signal Code : hamming;	   		-- 13bit data
 	signal cnt : integer := 0;											-- We don't want it to be initialized after eavh clock!
 	
 begin
