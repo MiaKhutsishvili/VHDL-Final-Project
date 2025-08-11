@@ -26,7 +26,6 @@ architecture Behavioral of PackToByte is
 begin
 	
 	PacketCash(0) <= "11001111";
-	PacketCash(2) <= "00000000";
 	
 	process(clk)
 	begin
@@ -34,6 +33,7 @@ begin
 			if CellCnt = 4 then
 				CellCnt <= 1;
 				PacketCash(1) <= PackIn(1);
+				PacketCash(2) <= PackIn(2);
 				PacketCash(3) <= PackIn(6);
 				ByteOut <= PacketCash(0);
 			else
