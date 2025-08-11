@@ -29,7 +29,7 @@ end HammingEncoder;
 architecture Behavioral of HammingEncoder is
 
 	signal InCode : byte := (others => '0');
-	signal Encoded : STD_LOGIC_VECTOR(0 to 12) := (others => '0');
+	signal Encoded : hamming := (others => '0');
 	signal InCnt : integer := 0;
 	signal OutCnt : integer := 0;
 
